@@ -670,7 +670,7 @@ function mcpMessage(e) {
     case "needs_reauth": return `Reconnect ${CCR} in claude.ai Settings → Connectors, then try again.`;
     case "not_in_manifest": return `This page isn't allowed to use ${CCR}. Turn it on in this page's Permissions menu.`;
     case "selection_required": return `Choose which ${CCR} connector this page should use when prompted.`;
-    case "blocked_by_policy": return `Your organization blocks ${CCR} here.`;
+    case "blocked_by_policy": return `Starting sessions from inside this page is blocked by a Claude policy.`;
     case "tool_error": return `Claude couldn't do that: ${e.message}`;
     case "not_granted": case "capability_disabled": case "capability_removed": return "Connectors aren't available in this view. Open the page in the Claude app.";
     default: return `Couldn't confirm that went through (${(e && e.code) || "unknown error"}). Check your Claude Code sessions before trying again.`;
@@ -698,7 +698,12 @@ async function startSession(t) {
   const m = await getMcp();
   if (!m) { toast("Connectors aren't available in this view. Open the page in the Claude app.", { error: true }); return; }
   try {
-    const res = await m.callTool(CCR, "create_session", { title: `Task: ${t.title}`.slice(0, 200), source_url: REPO_URL, prompt: agentPrompt(t), tags: ["task-master"], permission_mode: "auto" });
+    const args = { title: `Task: ${t.title}`.slice(0, 200), source_url: REPO_URL, prompt: agentPrompt(t), tags: ["task-master"] };
+    let res;
+    // Auto mode can be refused; a refused call never ran, so retry once in default mode
+    // (the repo pre-approves the tools task sessions need).
+    try { res = await m.callTool(CCR, "create_session", { ...args, permission_mode: "auto" }); }
+    catch (e) { if (e && (e.code === "blocked_by_policy" || e.code === "tool_error")) res = await m.callTool(CCR, "create_session", args); else throw e; }
     const p = res.payload || {};
     const id = (p.ccr && p.ccr.id) || p.id || p.session_id;
     if (!id) throw { code: "upstream_error" };
