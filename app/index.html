@@ -538,10 +538,12 @@ function renderDetail() {
         <h3>Claude agent</h3>
         <dl class="kv">
           <dt>Session</dt><dd>${sess ? `<a href="${esc(sess)}" target="_blank" rel="noopener">Open session ↗</a>` : "Not started yet"}</dd>
+          ${sess ? `<dt>Find it</dt><dd>Claude app → Code → “${esc(("Task: " + t.title).slice(0, 60))}${t.title.length > 54 ? "…" : ""}”</dd>` : ""}
           <dt>Run time</dt><dd>${cost.minutes != null ? esc(cost.minutes) + " min" : "—"}</dd>
           <dt>Cost</dt><dd>${cost.usd != null ? "$" + Number(cost.usd).toFixed(2) : "—"}${cost.usd != null && cost.estimate ? " (estimate)" : cost.usd != null ? " (exact)" : ""}</dd>
         </dl>
         ${!sess && t.status === "queued" ? `<p>The session hasn't started. The hourly scheduler will start it, or start it now.</p><div class="actions"><button class="btn primary" data-act="start">Start Claude session</button></div>` : ""}
+        ${sess ? `<div class="inline"><input id="f-session" readonly value="${esc(sess)}" aria-label="Session link"><button class="btn small" data-act="copy-session">Copy link</button></div>` : ""}
         ${sess && !["done", "review"].includes(t.status) ? `<div class="actions"><button class="btn danger small" data-act="stop">Stop Claude</button></div>` : ""}
       </div>` : ""}
 
@@ -855,6 +857,13 @@ $("#detail").addEventListener("click", async (e) => {
   if (!t) return;
   if (act === "pri") { if (t.priority !== b.dataset.pri) save(t.id, { priority: b.dataset.pri, history: withHistory(t, { kind: "note", text: `Priority ${t.priority} → ${b.dataset.pri}` }) }); return; }
   if (act === "due") { save(t.id, { due: b.dataset.due }); return; }
+  if (act === "copy-session") {
+    const input = $("#f-session");
+    // Clipboard must be called inside the click; fall back to selecting the text.
+    (navigator.clipboard ? navigator.clipboard.writeText(input.value) : Promise.reject()).then(() => toast("Session link copied. Paste it in your browser or the Claude app."))
+      .catch(() => { input.focus(); input.select(); toast("Link selected. Copy it with your device's copy command."); });
+    return;
+  }
   if (act === "delegate" || act === "delete") { pendingConfirm = act; renderDetail(); return; }
   if (act === "cancel") { pendingConfirm = null; renderDetail(); return; }
   pendingConfirm = null;
