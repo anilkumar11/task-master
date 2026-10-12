@@ -2,224 +2,319 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: one column of task rows on phones; list + detail panel side by side from 900px. */
+/* Layout: status tiles act as the view switcher; the task list is grouped by priority; the task detail opens beside the list on desktop and as a full-screen sheet on phones. */
 :root {
-  --bg: #f5f6f8;
+  --bg: #f3f4f7;
   --surface: #ffffff;
-  --sunk: #eceef2;
-  --fg: #18202b;
-  --muted: #5d6675;
-  --line: #dde1e7;
-  --accent: #2b5fd9;
+  --sunk: #eceef3;
+  --fg: #151a24;
+  --muted: #5e6776;
+  --faint: #8b93a1;
+  --line: #e0e3ea;
+  --accent: #3155d4;
+  --accent-soft: #e6ebfb;
   --accent-fg: #ffffff;
-  --p0: #c62f2f;
-  --p1: #c9681a;
-  --p2: #2b5fd9;
-  --p3: #7a8391;
-  --ask: #a35a00;
-  --ask-bg: #fff3df;
-  --ok: #1d7a4a;
-  --ok-bg: #e3f4ea;
-  --work: #5a3fc0;
-  --work-bg: #ece8fb;
+  --p0: #c8312f;
+  --p1: #c46a17;
+  --p2: #3155d4;
+  --p3: #7c8594;
+  --ask: #9c5600;
+  --ask-bg: #fff2dc;
+  --ok: #1b7a49;
+  --ok-bg: #e2f3e9;
+  --work: #5b3fc4;
+  --work-bg: #ede9fc;
+  --shadow: 0 1px 2px rgba(20, 26, 36, 0.06), 0 4px 14px rgba(20, 26, 36, 0.06);
   --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
   --font-body: "Instrument Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
-  --radius: 10px;
+  --radius: 12px;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #10141a; --surface: #171c24; --sunk: #1f2530; --fg: #e7ebf1; --muted: #9aa3b1; --line: #2a313d;
-    --accent: #6d97ff; --accent-fg: #0d1320;
-    --p0: #ff6b6b; --p1: #f0954a; --p2: #6d97ff; --p3: #8d96a5;
-    --ask: #ffb84d; --ask-bg: #33270f; --ok: #5fd197; --ok-bg: #143223; --work: #a891ff; --work-bg: #251f40;
+    --bg: #0f1218; --surface: #171b23; --sunk: #1f2430; --fg: #e8ecf2; --muted: #9ea7b5; --faint: #747d8c; --line: #2a303c;
+    --accent: #7096ff; --accent-soft: #1e2a4d; --accent-fg: #0c1220;
+    --p0: #ff6b68; --p1: #f29a4f; --p2: #7096ff; --p3: #8f98a7;
+    --ask: #ffba52; --ask-bg: #33260e; --ok: #5ed497; --ok-bg: #12301f; --work: #a993ff; --work-bg: #241e40;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 14px rgba(0, 0, 0, 0.25);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #10141a; --surface: #171c24; --sunk: #1f2530; --fg: #e7ebf1; --muted: #9aa3b1; --line: #2a313d;
-  --accent: #6d97ff; --accent-fg: #0d1320;
-  --p0: #ff6b6b; --p1: #f0954a; --p2: #6d97ff; --p3: #8d96a5;
-  --ask: #ffb84d; --ask-bg: #33270f; --ok: #5fd197; --ok-bg: #143223; --work: #a891ff; --work-bg: #251f40;
+  --bg: #0f1218; --surface: #171b23; --sunk: #1f2430; --fg: #e8ecf2; --muted: #9ea7b5; --faint: #747d8c; --line: #2a303c;
+  --accent: #7096ff; --accent-soft: #1e2a4d; --accent-fg: #0c1220;
+  --p0: #ff6b68; --p1: #f29a4f; --p2: #7096ff; --p3: #8f98a7;
+  --ask: #ffba52; --ask-bg: #33260e; --ok: #5ed497; --ok-bg: #12301f; --work: #a993ff; --work-bg: #241e40;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 14px rgba(0, 0, 0, 0.25);
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
+html, body { min-height: 100%; }
 body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 16px; padding-block: 16px 40px; display: flex; flex-direction: column; gap: 14px; }
+.wrap { max-width: 1200px; margin: 0 auto; padding-inline: 16px; padding-block: 18px 96px; display: flex; flex-direction: column; gap: 16px; }
 
-header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-h1 { font-family: var(--font-display); font-weight: 700; font-size: 1.6rem; letter-spacing: -0.01em; margin: 0; }
-.summary { color: var(--muted); font-size: 0.875rem; font-variant-numeric: tabular-nums; }
-.summary b { color: var(--ask); font-weight: 600; }
-.head-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.btn.small { padding: 4px 10px; font-size: 0.85rem; }
-.box.focus { background: var(--surface); border: 1px solid var(--line); }
-.box.focus h3 { color: var(--accent); }
-.focus-list { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
-.focus-list button { border: 0; background: none; padding: 0; color: var(--fg); font-weight: 600; text-align: left; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
-.focus-list span { color: var(--muted); font-size: 0.875rem; }
+/* Header */
+header { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.brand h1 { font-family: var(--font-display); font-weight: 700; font-size: 1.75rem; letter-spacing: -0.015em; margin: 0; line-height: 1.1; }
+.home { border: 0; background: none; padding: 0; font: inherit; color: inherit; letter-spacing: inherit; }
+.brand .date { color: var(--muted); font-size: 0.875rem; margin-top: 2px; }
+.tools { display: flex; gap: 8px; flex-wrap: wrap; }
 
-.banner { padding: 10px 12px; border-radius: var(--radius); background: var(--sunk); color: var(--fg); font-size: 0.9rem; }
-.banner.warn { background: var(--ask-bg); color: var(--ask); }
-
-#quick { display: flex; gap: 8px; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px; }
-#quick input { flex: 1 1 220px; min-width: 0; border: 0; background: transparent; padding: 8px; font-size: 1rem; }
-#quick input:focus { outline: none; }
-#quick:focus-within { border-color: var(--accent); }
-#quick select { border: 1px solid var(--line); background: var(--sunk); border-radius: 8px; padding: 6px 8px; }
-.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 7px 12px; font-weight: 500; }
+.btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--surface); border-radius: 9px; padding: 7px 12px; font-weight: 500; font-size: 0.9rem; }
 .btn:hover { background: var(--sunk); }
 .btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
-.btn.primary:hover { filter: brightness(1.07); }
+.btn.primary:hover { filter: brightness(1.07); background: var(--accent); }
+.btn.ghost { background: transparent; border-color: transparent; color: var(--muted); }
+.btn.ghost:hover { background: var(--sunk); color: var(--fg); }
 .btn.danger { color: var(--p0); }
+.btn.small { padding: 4px 10px; font-size: 0.82rem; }
 .btn:disabled { opacity: 0.55; cursor: default; }
-.hint { color: var(--muted); font-size: 0.8rem; margin-top: -6px; }
-.hint code { font-family: var(--font-mono); font-size: 0.75rem; background: var(--sunk); padding: 1px 4px; border-radius: 4px; }
+.btn svg { width: 15px; height: 15px; flex: none; }
 
-nav.tabs { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--line); }
-nav.tabs button { border: 0; background: none; padding: 8px 12px; color: var(--muted); font-weight: 500; border-bottom: 2px solid transparent; white-space: nowrap; }
-nav.tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--fg); }
-nav.tabs .count { font-family: var(--font-mono); font-size: 0.75rem; margin-left: 4px; }
-nav.tabs .count.hot { color: var(--ask); font-weight: 600; }
+.banner { padding: 10px 14px; border-radius: var(--radius); background: var(--ask-bg); color: var(--ask); font-size: 0.9rem; }
 
-.layout { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start; }
-@media (min-width: 900px) { .layout { grid-template-columns: minmax(0, 1fr) minmax(0, 440px); } }
+/* Status tiles (the view switcher) */
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 640px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tile { text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tile:hover { border-color: var(--faint); }
+.tile[aria-selected="true"] { border-color: var(--fg); box-shadow: inset 0 0 0 1px var(--fg); }
+.tile .n { font-family: var(--font-display); font-weight: 700; font-size: 1.6rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.tile .l { color: var(--muted); font-size: 0.82rem; font-weight: 500; }
+.tile .sub { font-size: 0.75rem; color: var(--faint); min-height: 1.1em; }
+.tile.needs.hot { background: var(--ask-bg); border-color: transparent; }
+.tile.needs.hot .n, .tile.needs.hot .l { color: var(--ask); }
+.tile .sub.alert { color: var(--p0); font-weight: 500; }
 
-#list { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.row { display: grid; grid-template-columns: 6px 1fr auto; gap: 12px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px 10px 0; text-align: left; width: 100%; overflow: hidden; }
-.row:hover { border-color: var(--muted); }
-.row[aria-current="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-.row .stripe { align-self: stretch; margin-block: -10px; }
-.row .main { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-.row .title { font-weight: 500; overflow-wrap: anywhere; }
+/* Quick add */
+#quick { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px; box-shadow: var(--shadow); }
+#quick:focus-within { border-color: var(--accent); }
+#q-title { flex: 1 1 260px; min-width: 0; border: 0; background: transparent; padding: 8px 10px; font-size: 1rem; }
+#q-title:focus { outline: none; }
+.chips { display: flex; gap: 4px; }
+.chip { border: 1px solid var(--line); background: var(--bg); border-radius: 999px; padding: 4px 10px; font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted); }
+.chip[aria-pressed="true"].P0 { background: var(--p0); border-color: var(--p0); color: var(--surface); }
+.chip[aria-pressed="true"].P1 { background: var(--p1); border-color: var(--p1); color: var(--surface); }
+.chip[aria-pressed="true"].P2 { background: var(--p2); border-color: var(--p2); color: var(--surface); }
+.chip[aria-pressed="true"].P3 { background: var(--p3); border-color: var(--p3); color: var(--surface); }
+.hint { color: var(--faint); font-size: 0.78rem; margin-top: -8px; padding-inline: 4px; }
+.hint code { font-family: var(--font-mono); font-size: 0.72rem; background: var(--sunk); padding: 1px 4px; border-radius: 4px; color: var(--muted); }
+
+/* Assistant panel (focus + reprioritize) */
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; box-shadow: var(--shadow); }
+.panel-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.panel h2 { margin: 0; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--accent); }
+.panel p { margin: 0; color: var(--muted); }
+.focus-list { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; }
+.linkish { border: 0; background: none; padding: 0; color: var(--fg); font-weight: 600; text-align: left; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+.linkish:hover { text-decoration-color: var(--accent); }
+.reason { display: block; color: var(--muted); font-size: 0.86rem; }
+.changes { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.change { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: start; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; }
+.change input { margin-top: 3px; width: 16px; height: 16px; accent-color: var(--accent); }
+.change .t { font-weight: 500; overflow-wrap: anywhere; }
+.change .move { display: inline-flex; align-items: center; gap: 6px; margin: 3px 0; font-family: var(--font-mono); font-size: 0.75rem; color: var(--faint); }
+.spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--accent); display: inline-block; vertical-align: -2px; margin-right: 6px; }
+@media (prefers-reduced-motion: no-preference) { .spin { animation: rot 0.8s linear infinite; } }
+@keyframes rot { to { transform: rotate(360deg); } }
+
+/* List */
+.layout { display: grid; grid-template-columns: 1fr; gap: 18px; align-items: start; }
+@media (min-width: 920px) { .layout { grid-template-columns: minmax(0, 1fr) minmax(0, 450px); } }
+.listcol { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.listbar { display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.listbar h2 { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: 1.15rem; }
+#search { border: 1px solid var(--line); background: var(--surface); border-radius: 9px; padding: 7px 10px; width: min(240px, 100%); }
+.group { display: flex; flex-direction: column; gap: 6px; }
+.group-h { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); padding: 6px 2px 2px; }
+.group-h .dot { width: 8px; height: 8px; border-radius: 50%; }
+.group-h .c { font-family: var(--font-mono); color: var(--faint); font-weight: 400; }
+.dot.P0 { background: var(--p0); } .dot.P1 { background: var(--p1); } .dot.P2 { background: var(--p2); } .dot.P3 { background: var(--p3); } .dot.ask { background: var(--ask); }
+
+.row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--line); border-radius: 10px; padding: 9px 12px 9px 10px; }
+.row.P0 { border-left-color: var(--p0); } .row.P1 { border-left-color: var(--p1); } .row.P2 { border-left-color: var(--p2); } .row.P3 { border-left-color: var(--p3); }
+.row:hover { border-color: var(--faint); }
+.row.P0:hover { border-left-color: var(--p0); } .row.P1:hover { border-left-color: var(--p1); } .row.P2:hover { border-left-color: var(--p2); } .row.P3:hover { border-left-color: var(--p3); }
+.row.sel { box-shadow: 0 0 0 2px var(--accent); }
+.check { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--faint); background: transparent; padding: 0; display: grid; place-items: center; color: transparent; }
+.check:hover { border-color: var(--ok); color: var(--ok); }
+.check svg { width: 12px; height: 12px; }
+.row.done .check { background: var(--ok); border-color: var(--ok); color: var(--surface); }
+.open-btn { border: 0; background: none; padding: 2px 0; text-align: left; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.open-btn .title { font-weight: 500; overflow-wrap: anywhere; }
 .row.done .title { color: var(--muted); text-decoration: line-through; }
-.row .meta { display: flex; gap: 8px; flex-wrap: wrap; color: var(--muted); font-size: 0.8rem; }
-.row .meta .overdue { color: var(--p0); font-weight: 500; }
-.row .side { display: flex; gap: 6px; align-items: center; }
-.stripe.P0 { background: var(--p0); } .stripe.P1 { background: var(--p1); } .stripe.P2 { background: var(--p2); } .stripe.P3 { background: var(--p3); }
-
-.pri { font-family: var(--font-mono); font-size: 0.72rem; font-weight: 500; padding: 1px 6px; border-radius: 5px; border: 1px solid currentColor; }
+.meta { display: flex; gap: 10px; flex-wrap: wrap; color: var(--muted); font-size: 0.78rem; }
+.meta .overdue { color: var(--p0); font-weight: 600; }
+.meta .soon { color: var(--fg); font-weight: 500; }
+.agent { display: inline-flex; align-items: center; gap: 5px; color: var(--work); font-weight: 500; }
+.agent.ask { color: var(--ask); }
+.agent.ok { color: var(--ok); }
+.pulse { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+@media (prefers-reduced-motion: no-preference) { .pulse.live { animation: pulse 1.6s ease-in-out infinite; } }
+@keyframes pulse { 50% { opacity: 0.3; } }
+.pri { font-family: var(--font-mono); font-size: 0.7rem; font-weight: 500; padding: 1px 6px; border-radius: 5px; border: 1px solid currentColor; }
 .pri.P0 { color: var(--p0); } .pri.P1 { color: var(--p1); } .pri.P2 { color: var(--p2); } .pri.P3 { color: var(--p3); }
-.pill { font-size: 0.75rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--sunk); color: var(--muted); white-space: nowrap; }
+
+.empty { padding: 32px 16px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: var(--radius); background: var(--surface); }
+.empty strong { display: block; color: var(--fg); font-weight: 600; margin-bottom: 4px; font-size: 1rem; }
+
+/* Detail */
+#detail { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); display: flex; flex-direction: column; min-width: 0; }
+@media (min-width: 920px) { #detail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 14px); max-height: calc(100vh - 28px); overflow-y: auto; } }
+@media (max-width: 919px) {
+  #detail { position: fixed; inset: 0; z-index: 20; border-radius: 0; border: 0; overflow-y: auto; padding-bottom: env(safe-area-inset-bottom, 0px); }
+}
+.d-bar { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 14px; background: var(--surface); border-bottom: 1px solid var(--line); }
+@media (max-width: 919px) { .d-bar { padding-top: calc(env(safe-area-inset-top, 0px) + 10px); } }
+.d-body { padding: 16px; display: flex; flex-direction: column; gap: 18px; }
+/* Phones: a back button pinned to the bottom, in case the app's own header covers the top bar. */
+.d-back { display: none; }
+@media (max-width: 919px) {
+  .d-body { padding-bottom: 84px; }
+  .d-back { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 21; justify-content: center; padding: 10px 16px calc(env(safe-area-inset-bottom, 0px) + 12px); background: linear-gradient(transparent, var(--surface) 35%); }
+  .d-back .btn { width: 100%; max-width: 480px; justify-content: center; padding: 11px 14px; font-size: 0.95rem; box-shadow: var(--shadow); }
+}
+.d-title { width: 100%; border: 0; border-bottom: 1px dashed transparent; background: transparent; font-family: var(--font-display); font-weight: 600; font-size: 1.35rem; line-height: 1.25; padding: 2px 0; resize: none; overflow: hidden; }
+.d-title:hover, .d-title:focus { border-bottom-color: var(--line); outline: none; }
+.pill { font-size: 0.75rem; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--sunk); color: var(--muted); white-space: nowrap; }
 .pill.needs-input { background: var(--ask-bg); color: var(--ask); }
 .pill.in-progress, .pill.queued { background: var(--work-bg); color: var(--work); }
 .pill.review { background: var(--ok-bg); color: var(--ok); }
-.who { font-family: var(--font-mono); font-size: 0.72rem; color: var(--work); }
-
-.empty { padding: 28px 16px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: var(--radius); }
-.empty strong { display: block; color: var(--fg); font-weight: 600; margin-bottom: 4px; }
-
-#detail { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-@media (min-width: 900px) { #detail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); max-height: calc(100vh - 24px); overflow-y: auto; } }
-@media (max-width: 899px) {
-  #detail { position: fixed; inset: 0; z-index: 10; border-radius: 0; border: 0; overflow-y: auto; padding-top: calc(env(safe-area-inset-top, 0px) + 12px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 24px); }
-  #detail .back { display: inline-flex; }
-}
-#detail .back { display: none; align-self: flex-start; }
-.d-title { width: 100%; border: 0; border-bottom: 1px solid transparent; background: transparent; font-family: var(--font-display); font-weight: 600; font-size: 1.3rem; padding: 2px 0; text-wrap: balance; }
-.d-title:hover, .d-title:focus { border-bottom-color: var(--line); outline: none; }
-.field { display: flex; flex-direction: column; gap: 5px; }
-.field > span { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; }
-.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
-.field input, .field select, .field textarea { border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 8px 10px; width: 100%; min-width: 0; }
-.field textarea { min-height: 140px; resize: vertical; font-family: var(--font-body); }
-.seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-.seg button { flex: 1; border: 0; background: var(--bg); padding: 7px 0; font-family: var(--font-mono); font-size: 0.8rem; }
+.pill.done { background: var(--ok-bg); color: var(--ok); }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > span { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 600; }
+.props { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; }
+.field input, .field select, .field textarea { border: 1px solid var(--line); background: var(--bg); border-radius: 9px; padding: 8px 10px; width: 100%; min-width: 0; }
+.field textarea { min-height: 150px; resize: vertical; }
+.seg { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+.seg button { border: 0; background: var(--bg); padding: 7px 2px; display: flex; flex-direction: column; align-items: center; gap: 1px; }
 .seg button + button { border-left: 1px solid var(--line); }
+.seg b { font-family: var(--font-mono); font-size: 0.8rem; font-weight: 500; }
+.seg small { font-size: 0.68rem; color: var(--muted); }
+.seg button[aria-pressed="true"] small { color: inherit; opacity: 0.85; }
 .seg button[aria-pressed="true"].P0 { background: var(--p0); color: var(--surface); }
 .seg button[aria-pressed="true"].P1 { background: var(--p1); color: var(--surface); }
 .seg button[aria-pressed="true"].P2 { background: var(--p2); color: var(--surface); }
 .seg button[aria-pressed="true"].P3 { background: var(--p3); color: var(--surface); }
+.quickdates { display: flex; gap: 4px; flex-wrap: wrap; }
+.quickdates .chip { font-family: var(--font-body); font-size: 0.75rem; }
 .actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
-.box { border-radius: var(--radius); padding: 12px; display: flex; flex-direction: column; gap: 10px; }
-.box h3 { margin: 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; }
-.box.ask { background: var(--ask-bg); }
-.box.ask h3 { color: var(--ask); }
-.box.agent { background: var(--work-bg); }
-.box.agent h3 { color: var(--work); }
-.box.review { background: var(--ok-bg); }
-.box.review h3 { color: var(--ok); }
+.box { border-radius: var(--radius); padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.box h3 { margin: 0; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.07em; }
 .box p { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.box.ask { background: var(--ask-bg); } .box.ask h3 { color: var(--ask); }
+.box.agentbox { background: var(--work-bg); } .box.agentbox h3 { color: var(--work); }
+.box.review { background: var(--ok-bg); } .box.review h3 { color: var(--ok); }
 .opts { display: flex; flex-direction: column; gap: 6px; }
-.opt { text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 9px 10px; }
+.opt { text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: 9px; padding: 10px 12px; }
 .opt:hover { border-color: var(--ask); }
-.opt .rec { font-size: 0.72rem; font-weight: 600; color: var(--ask); margin-left: 6px; }
+.opt .rec { font-size: 0.7rem; font-weight: 600; color: var(--ask); margin-left: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
 .inline { display: flex; gap: 6px; }
-.inline input { flex: 1; min-width: 0; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 8px 10px; }
-.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 0.875rem; }
+.inline input { flex: 1; min-width: 0; border: 1px solid var(--line); background: var(--surface); border-radius: 9px; padding: 8px 10px; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 5px 14px; font-size: 0.875rem; margin: 0; }
 .kv dt { color: var(--muted); }
 .kv dd { margin: 0; font-family: var(--font-mono); font-size: 0.8rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .kv a { color: var(--accent); }
-.confirm { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
-.msg { font-size: 0.85rem; color: var(--p0); }
-.msg.ok { color: var(--ok); }
+.confirm { display: flex; flex-direction: column; gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+.d-foot { display: flex; gap: 8px; flex-wrap: wrap; justify-content: space-between; padding-top: 4px; border-top: 1px solid var(--line); padding-block: 14px 0; }
 
-.history { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
-.history li { display: grid; grid-template-columns: 54px 1fr; gap: 8px; font-size: 0.85rem; }
-.history time { font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); padding-top: 2px; }
-.history .by { font-weight: 600; margin-right: 4px; }
+.history { display: flex; flex-direction: column; gap: 0; margin: 10px 0 0; padding: 0; list-style: none; }
+.history li { display: grid; grid-template-columns: 14px 1fr; gap: 10px; font-size: 0.85rem; padding-bottom: 10px; position: relative; }
+.history li::before { content: ""; position: absolute; left: 6px; top: 14px; bottom: 0; width: 1px; background: var(--line); }
+.history li:last-child::before { display: none; }
+.history .mark { width: 9px; height: 9px; border-radius: 50%; background: var(--faint); margin: 5px 0 0 2px; }
+.history .mark.claude { background: var(--work); }
+.history .mark.question { background: var(--ask); }
+.history .mark.result { background: var(--ok); }
+.history .when { font-family: var(--font-mono); font-size: 0.7rem; color: var(--faint); margin-left: 6px; }
+.history .by { font-weight: 600; }
 .history .by.claude { color: var(--work); }
-.history .txt { overflow-wrap: anywhere; white-space: pre-wrap; }
-details summary { cursor: pointer; color: var(--muted); font-size: 0.85rem; }
-@media (prefers-reduced-motion: no-preference) { .row { transition: border-color 0.12s; } }
+.history .txt { display: block; overflow-wrap: anywhere; white-space: pre-wrap; color: var(--fg); }
+details summary { cursor: pointer; color: var(--muted); font-size: 0.85rem; font-weight: 500; }
+
+/* Toast */
+#toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); z-index: 30; display: flex; align-items: center; gap: 12px; max-width: min(560px, calc(100% - 32px)); background: var(--fg); color: var(--bg); padding: 10px 14px; border-radius: 10px; box-shadow: var(--shadow); font-size: 0.9rem; }
+#toast.error { background: var(--p0); color: #fff; }
+#toast button { border: 0; background: transparent; color: inherit; font-weight: 700; text-decoration: underline; padding: 0; white-space: nowrap; }
+@media (prefers-reduced-motion: no-preference) { .row, .tile, .btn { transition: border-color 0.12s, background-color 0.12s; } }
 </style>
 
 <div class="wrap">
   <header>
-    <h1>Task Master</h1>
-    <div class="head-right">
-      <div class="summary" id="summary">Loading tasks…</div>
-      <button class="btn small" id="focus-btn" type="button" hidden>What should I focus on?</button>
+    <div class="brand">
+      <h1><button class="home" id="home" type="button" title="Back to all open tasks">Task Master</button></h1>
+      <div class="date" id="today"></div>
+    </div>
+    <div class="tools">
+      <button class="btn" id="reprio-btn" type="button" hidden>
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 13V3M4 3 1.5 5.5M4 3l2.5 2.5M12 3v10m0 0-2.5-2.5M12 13l2.5-2.5"/></svg>
+        Reprioritize
+      </button>
+      <button class="btn" id="focus-btn" type="button" hidden>
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6"/><circle cx="8" cy="8" r="2.5"/></svg>
+        Focus today
+      </button>
     </div>
   </header>
 
-  <div class="banner warn" id="banner" hidden></div>
+  <div class="banner" id="banner" hidden></div>
 
-  <form id="quick" autocomplete="off">
-    <input id="q-title" placeholder="Add a task… e.g. Renew passport p1 tomorrow" aria-label="New task title">
-    <select id="q-pri" aria-label="Priority">
-      <option value="P0">P0 · Urgent</option>
-      <option value="P1">P1 · This week</option>
-      <option value="P2" selected>P2 · Normal</option>
-      <option value="P3">P3 · Someday</option>
-    </select>
-    <button class="btn primary" type="submit">Add</button>
-  </form>
-  <div class="hint">Shortcuts in the title: <code>p0</code>–<code>p3</code> sets priority, <code>today</code> or <code>tomorrow</code> sets the due date.</div>
-
-  <div class="box focus" id="focus" hidden></div>
-
-  <nav class="tabs" role="tablist" id="tabs">
-    <button role="tab" data-view="needs" id="tab-needs">Needs you<span class="count" id="c-needs"></span></button>
-    <button role="tab" data-view="open" id="tab-open">Open<span class="count" id="c-open"></span></button>
-    <button role="tab" data-view="claude" id="tab-claude">With Claude<span class="count" id="c-claude"></span></button>
-    <button role="tab" data-view="done" id="tab-done">Done<span class="count" id="c-done"></span></button>
+  <nav class="tiles" role="tablist" aria-label="Task views">
+    <button class="tile needs" role="tab" data-view="needs" id="tile-needs"><span class="n" id="n-needs">0</span><span class="l">Needs you</span><span class="sub" id="s-needs"></span></button>
+    <button class="tile" role="tab" data-view="open" id="tile-open"><span class="n" id="n-open">0</span><span class="l">Open</span><span class="sub" id="s-open"></span></button>
+    <button class="tile" role="tab" data-view="claude" id="tile-claude"><span class="n" id="n-claude">0</span><span class="l">With Claude</span><span class="sub" id="s-claude"></span></button>
+    <button class="tile" role="tab" data-view="done" id="tile-done"><span class="n" id="n-done">0</span><span class="l">Done</span><span class="sub" id="s-done"></span></button>
   </nav>
 
+  <form id="quick" autocomplete="off">
+    <input id="q-title" placeholder="Add a task…" aria-label="New task title">
+    <div class="chips" role="group" aria-label="Priority for new task">
+      <button type="button" class="chip P0" data-qpri="P0" aria-pressed="false" title="Urgent">P0</button>
+      <button type="button" class="chip P1" data-qpri="P1" aria-pressed="false" title="This week">P1</button>
+      <button type="button" class="chip P2" data-qpri="P2" aria-pressed="true" title="Normal">P2</button>
+      <button type="button" class="chip P3" data-qpri="P3" aria-pressed="false" title="Someday">P3</button>
+    </div>
+    <button class="btn primary" type="submit">Add task</button>
+  </form>
+  <div class="hint">Shortcuts: <code>p0</code>–<code>p3</code> in the title sets priority, <code>today</code> / <code>tomorrow</code> sets the due date. Press <code>N</code> to jump here.</div>
+
+  <section class="panel" id="panel" hidden aria-live="polite"></section>
+
   <div class="layout">
-    <div id="list" aria-live="polite"></div>
+    <div class="listcol">
+      <div class="listbar">
+        <h2 id="list-title">Open tasks</h2>
+        <input id="search" type="search" placeholder="Search tasks" aria-label="Search tasks">
+      </div>
+      <div id="list"></div>
+    </div>
     <aside id="detail" hidden></aside>
   </div>
 </div>
 
+<div id="toast" role="status" hidden></div>
+
 <script>
-// Set after the first publish: the agent uses it to find this task store.
+// The agent uses this URL to find the task store. Keep it pointing at the published artifact.
 const ARTIFACT_URL = "https://claude.ai/artifact/9XBCgHprdE8jEVJRrBLaS3";
 const REPO_URL = "https://github.com/anilkumar11/task-master";
 const CCR = "Claude Code Remote";
 const PRI = ["P0", "P1", "P2", "P3"];
 const PRI_LABEL = { P0: "Urgent", P1: "This week", P2: "Normal", P3: "Someday" };
-const STATUS_LABEL = { "todo": "To do", "queued": "Queued", "in-progress": "Working", "needs-input": "Needs you", "review": "Review", "done": "Done" };
+const STATUS_LABEL = { "todo": "To do", "queued": "Queued for Claude", "in-progress": "Claude working", "needs-input": "Needs you", "review": "Ready to review", "done": "Done" };
 const TYPES = { "": "Not set", code: "Code", research: "Research", writing: "Writing", action: "Account action" };
 const REPEAT = { "": "Doesn't repeat", daily: "Daily", weekly: "Weekly", monthly: "Monthly" };
+const VIEW_TITLE = { needs: "Waiting on you", open: "Open tasks", claude: "With Claude", done: "Done" };
+const ICON_CHECK = `<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2.5 6.2 5 8.5l4.5-5"/></svg>`;
 
-let db = null, mcp = null, tasks = [], loaded = false;
-let view = "open", selectedId = null, pendingConfirm = null, flash = null, historyOpen = {};
-const chains = {};
+let db = null, mcp = null, sample = null, tasks = [], loaded = false;
+let view = "open", selectedId = null, pendingConfirm = null, query = "", quickPri = "P2";
+let historyOpen = {}, panel = null; // panel: {kind: "focus"|"reprio", state, ...}
+const chains = {}, debounced = {};
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -227,26 +322,44 @@ const nowIso = () => new Date().toISOString();
 const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const todayStr = () => ymd(new Date());
 const addDays = (s, n) => { const d = s ? new Date(s + "T00:00:00") : new Date(); d.setDate(d.getDate() + n); return ymd(d); };
+const byId = (id) => tasks.find((t) => t.id === id);
 
-function dueLabel(due, status) {
+function dueInfo(due, status) {
   if (!due) return null;
   const t = todayStr();
-  const fmt = new Date(due + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" });
-  if (status !== "done" && due < t) return { text: `Overdue · ${fmt}`, overdue: true };
-  if (due === t) return { text: "Due today", overdue: false };
-  if (due === addDays(t, 1)) return { text: "Due tomorrow", overdue: false };
-  return { text: `Due ${fmt}`, overdue: false };
+  const fmt = new Date(due + "T00:00:00").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  if (status !== "done" && due < t) return { text: `Overdue · ${fmt}`, cls: "overdue" };
+  if (due === t) return { text: "Due today", cls: "soon" };
+  if (due === addDays(t, 1)) return { text: "Due tomorrow", cls: "soon" };
+  return { text: `Due ${fmt}`, cls: "" };
 }
 function timeShort(iso) {
   const d = new Date(iso);
   if (isNaN(d)) return "";
   return ymd(d) === todayStr() ? d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }) : d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
+// Only link to real Claude session pages; the URL is written by agents.
+const safeSession = (t) => t.session && typeof t.session.url === "string" && /^https:\/\/claude\.ai\//.test(t.session.url) ? t.session.url : null;
+
+// ---------- toast ----------
+let toastTimer = null, toastUndo = null;
+function toast(text, opts = {}) {
+  const el = $("#toast");
+  clearTimeout(toastTimer);
+  toastUndo = opts.undo || null;
+  el.className = opts.error ? "error" : "";
+  el.innerHTML = `<span>${esc(text)}</span>${toastUndo ? `<button type="button" id="toast-undo">Undo</button>` : ""}`;
+  el.hidden = false;
+  toastTimer = setTimeout(() => { el.hidden = true; toastUndo = null; }, opts.error ? 9000 : 5000);
+}
+$("#toast").addEventListener("click", (e) => {
+  if (e.target.id === "toast-undo" && toastUndo) { const fn = toastUndo; toastUndo = null; $("#toast").hidden = true; fn(); }
+});
 
 // ---------- store ----------
 function save(id, patch) {
   const run = () => db.doc("tasks/" + id).update({ ...patch, updatedAt: nowIso() });
-  chains[id] = (chains[id] || Promise.resolve()).then(run).catch((e) => showBanner(storeError(e)));
+  chains[id] = (chains[id] || Promise.resolve()).then(run).catch((e) => toast(storeError(e), { error: true }));
   return chains[id];
 }
 function withHistory(t, entry) {
@@ -257,7 +370,12 @@ function storeError(e) {
   if (e && e.code === "invalid_argument") return "That change couldn't be saved. Only the owner of this page can edit tasks.";
   return "A change couldn't be saved. Check your connection and try again.";
 }
-function showBanner(text) { const b = $("#banner"); b.textContent = text; b.hidden = !text; }
+function showBanner(text) { const b = $("#banner"); b.textContent = text || ""; b.hidden = !text; }
+function blankTask(over) {
+  const at = nowIso();
+  return { title: "", details: "", priority: "P2", status: "todo", assignee: "me", type: "", due: "", repeat: "",
+    session: null, question: null, cost: null, history: [{ at, by: "me", kind: "status", text: "Created" }], createdAt: at, updatedAt: at, doneAt: null, ...over };
+}
 
 async function addTask(raw, pri) {
   let title = raw.trim(), priority = pri, due = "";
@@ -268,171 +386,282 @@ async function addTask(raw, pri) {
   title = title.replace(/\s+/g, " ").trim();
   if (!title) return;
   const ref = db.collection("tasks").doc();
-  const t = blankTask({ title, priority, due });
-  try { await ref.set(t); selectedId = ref.id; view = "open"; render(); }
-  catch (e) { showBanner(storeError(e)); }
-}
-function blankTask(over) {
-  const at = nowIso();
-  return { title: "", details: "", priority: "P2", status: "todo", assignee: "me", type: "", due: "", repeat: "",
-    session: null, question: null, cost: null, history: [{ at, by: "me", kind: "status", text: "Created" }], createdAt: at, updatedAt: at, doneAt: null, ...over };
+  try {
+    await ref.set(blankTask({ title, priority, due }));
+    if (view === "done" || view === "needs") view = "open";
+    toast(`Added “${title}” as ${priority}.`);
+  } catch (e) { toast(storeError(e), { error: true }); }
 }
 
 // ---------- views ----------
-const rank = (t) => (t.status === "needs-input" ? 0 : 1);
-function sortOpen(a, b) {
-  return rank(a) - rank(b) || PRI.indexOf(a.priority) - PRI.indexOf(b.priority) ||
-    (a.due || "9999") .localeCompare(b.due || "9999") || String(a.createdAt).localeCompare(String(b.createdAt));
-}
+const sortOpen = (a, b) => (a.status === "needs-input" ? 0 : 1) - (b.status === "needs-input" ? 0 : 1) ||
+  PRI.indexOf(a.priority) - PRI.indexOf(b.priority) || (a.due || "9999").localeCompare(b.due || "9999") || String(a.createdAt).localeCompare(String(b.createdAt));
 function inView(v) {
-  if (v === "needs") return tasks.filter((t) => t.status === "needs-input").sort(sortOpen);
+  if (v === "needs") return tasks.filter((t) => t.status === "needs-input" || t.status === "review").sort(sortOpen);
   if (v === "claude") return tasks.filter((t) => t.assignee === "claude" && t.status !== "done").sort(sortOpen);
-  if (v === "done") return tasks.filter((t) => t.status === "done").sort((a, b) => String(b.doneAt).localeCompare(String(a.doneAt))).slice(0, 100);
+  if (v === "done") return tasks.filter((t) => t.status === "done").sort((a, b) => String(b.doneAt).localeCompare(String(a.doneAt))).slice(0, 200);
   return tasks.filter((t) => t.status !== "done").sort(sortOpen);
 }
+const matches = (t) => !query || (t.title + " " + (t.details || "")).toLowerCase().includes(query);
 
 function render() {
-  const counts = { needs: inView("needs").length, open: inView("open").length, claude: inView("claude").length, done: tasks.filter((t) => t.status === "done").length };
-  for (const k of Object.keys(counts)) {
-    const el = $("#c-" + k); el.textContent = counts[k] ? counts[k] : ""; el.classList.toggle("hot", k === "needs" && counts[k] > 0);
-    $("#tab-" + k).setAttribute("aria-selected", String(view === k));
-  }
-  const overdue = tasks.filter((t) => t.status !== "done" && t.due && t.due < todayStr()).length;
-  $("#summary").innerHTML = !loaded ? "Loading tasks…" :
-    `${counts.open} open` + (counts.needs ? ` · <b>${counts.needs} waiting on you</b>` : "") + (overdue ? ` · ${overdue} overdue` : "") + (counts.claude ? ` · ${counts.claude} with Claude` : "");
+  renderTiles();
   renderList();
+  renderPanel();
   renderDetail();
+}
+
+function renderTiles() {
+  const open = inView("open"), t = todayStr();
+  const ask = tasks.filter((x) => x.status === "needs-input").length, rev = tasks.filter((x) => x.status === "review").length;
+  const overdue = open.filter((x) => x.due && x.due < t).length, dueToday = open.filter((x) => x.due === t).length;
+  const claude = inView("claude"), working = claude.filter((x) => x.status === "in-progress").length;
+  const doneToday = tasks.filter((x) => x.status === "done" && x.doneAt && ymd(new Date(x.doneAt)) === t).length;
+  const set = (k, n, sub, alert) => {
+    $("#n-" + k).textContent = loaded ? n : "–";
+    const s = $("#s-" + k); s.textContent = sub; s.classList.toggle("alert", !!alert);
+    $("#tile-" + k).setAttribute("aria-selected", String(view === k));
+  };
+  set("needs", ask + rev, [ask && `${ask} question${ask > 1 ? "s" : ""}`, rev && `${rev} to review`].filter(Boolean).join(" · "));
+  $("#tile-needs").classList.toggle("hot", ask + rev > 0);
+  set("open", open.length, overdue ? `${overdue} overdue` : dueToday ? `${dueToday} due today` : "", overdue > 0);
+  set("claude", claude.length, working ? `${working} working now` : "");
+  set("done", tasks.length - open.length, doneToday ? `${doneToday} today` : "");
+  $("#list-title").textContent = VIEW_TITLE[view];
+}
+
+function rowHtml(t, showPri) {
+  const due = dueInfo(t.due, t.status);
+  let agent = "";
+  if (t.assignee === "claude" && t.status !== "done") {
+    const cls = t.status === "needs-input" ? "ask" : t.status === "review" ? "ok" : "";
+    agent = `<span class="agent ${cls}"><span class="pulse${t.status === "in-progress" ? " live" : ""}"></span>${esc(STATUS_LABEL[t.status] || "Claude")}</span>`;
+  }
+  return `<div class="row ${esc(t.priority)}${t.status === "done" ? " done" : ""}${t.id === selectedId ? " sel" : ""}" data-id="${esc(t.id)}">
+    <button class="check" data-check aria-label="${t.status === "done" ? "Reopen" : "Mark done"}: ${esc(t.title)}">${ICON_CHECK}</button>
+    <button class="open-btn" data-open>
+      <span class="title">${esc(t.title)}</span>
+      <span class="meta">
+        ${agent}
+        ${due ? `<span class="${due.cls}">${esc(due.text)}</span>` : ""}
+        ${t.repeat ? `<span>↻ ${esc(REPEAT[t.repeat] || t.repeat)}</span>` : ""}
+        ${t.details ? `<span title="Has details">≡</span>` : ""}
+      </span>
+    </button>
+    ${showPri ? `<span class="pri ${esc(t.priority)}">${esc(t.priority)}</span>` : "<span></span>"}
+  </div>`;
 }
 
 function renderList() {
   const list = $("#list");
-  const items = inView(view);
-  if (!loaded) { list.innerHTML = `<div class="empty"><strong>Loading your tasks</strong>They'll appear here in a moment.</div>`; return; }
+  if (!loaded) { list.innerHTML = `<div class="empty"><strong><span class="spin"></span>Loading your tasks</strong>They'll appear in a moment.</div>`; return; }
+  const items = inView(view).filter(matches);
   if (!items.length) {
-    const msg = {
-      needs: ["Nothing needs you right now", "When Claude has a question about a delegated task, it shows up here."],
-      open: ["No open tasks", "Type a task in the box above and press Add."],
+    const msg = query ? ["No matches", `Nothing in this view matches “${query}”.`] : {
+      needs: ["You're all caught up", "Claude's questions and finished work show up here."],
+      open: ["No open tasks", "Type a task in the box above and press Add task."],
       claude: ["Nothing delegated yet", "Open a task and press Delegate to Claude to hand it off."],
-      done: ["Nothing done yet", "Finished tasks are listed here."],
+      done: ["Nothing done yet", "Tick the circle next to a task to complete it."],
     }[view];
-    list.innerHTML = `<div class="empty"><strong>${msg[0]}</strong>${msg[1]}</div>`;
+    list.innerHTML = `<div class="empty"><strong>${esc(msg[0])}</strong>${esc(msg[1])}</div>`;
     return;
   }
-  list.innerHTML = items.map((t) => {
-    const due = dueLabel(t.due, t.status);
-    return `<button class="row${t.status === "done" ? " done" : ""}" data-id="${esc(t.id)}" aria-current="${t.id === selectedId}">
-      <span class="stripe ${esc(t.priority)}"></span>
-      <span class="main">
-        <span class="title">${esc(t.title)}</span>
-        <span class="meta">
-          <span class="pri ${esc(t.priority)}">${esc(t.priority)}</span>
-          ${due ? `<span class="${due.overdue ? "overdue" : ""}">${esc(due.text)}</span>` : ""}
-          ${t.repeat ? `<span>Repeats ${esc(t.repeat)}</span>` : ""}
-          ${t.assignee === "claude" ? `<span class="who">Claude</span>` : ""}
-        </span>
-      </span>
-      <span class="side">${t.status !== "todo" ? `<span class="pill ${esc(t.status)}">${esc(STATUS_LABEL[t.status] || t.status)}</span>` : ""}</span>
-    </button>`;
-  }).join("");
+  if (view !== "open") { list.innerHTML = `<div class="group">${items.map((t) => rowHtml(t, true)).join("")}</div>`; return; }
+  const groups = [{ key: "ask", label: "Waiting on you", items: items.filter((t) => t.status === "needs-input") }]
+    .concat(PRI.map((p) => ({ key: p, label: `${p} · ${PRI_LABEL[p]}`, items: items.filter((t) => t.priority === p && t.status !== "needs-input") })));
+  list.innerHTML = groups.filter((g) => g.items.length).map((g) =>
+    `<section class="group"><div class="group-h"><span class="dot ${g.key}"></span>${esc(g.label)}<span class="c">${g.items.length}</span></div>${g.items.map((t) => rowHtml(t, false)).join("")}</section>`).join("");
 }
 
 function renderDetail() {
   const pane = $("#detail");
-  const t = tasks.find((x) => x.id === selectedId);
+  const t = byId(selectedId);
   if (!t) { pane.hidden = true; pane.innerHTML = ""; return; }
   pane.hidden = false;
-  const focusId = document.activeElement && pane.contains(document.activeElement) ? document.activeElement.id : null;
-  const caret = focusId && document.activeElement.selectionStart != null ? [document.activeElement.selectionStart, document.activeElement.selectionEnd] : null;
+  const active = document.activeElement;
+  const focusId = active && pane.contains(active) ? active.id : null;
+  const caret = focusId && active.selectionStart != null ? [active.selectionStart, active.selectionEnd] : null;
+  const scroll = pane.scrollTop;
 
   const delegated = t.assignee === "claude";
-  // Only link to real Claude session pages; the URL is written by agents.
-  const sess = t.session && typeof t.session.url === "string" && /^https:\/\/claude\.ai\//.test(t.session.url) ? t.session.url : null;
-  const showHist = historyOpen[t.id] ?? (Array.isArray(t.history) ? t.history.length : 0) <= 6;
+  const sess = safeSession(t);
   const q = t.status === "needs-input" && t.question;
   const cost = t.cost || {};
   const hist = (Array.isArray(t.history) ? t.history : []).slice().reverse();
+  const showHist = historyOpen[t.id] ?? hist.length <= 6;
+  const tdy = todayStr();
 
   pane.innerHTML = `
-    <button class="btn back" data-act="close">← All tasks</button>
-    <input class="d-title" id="f-title" value="${esc(t.title)}" aria-label="Task title">
-    <div class="actions">
+    <div class="d-bar">
+      <button class="btn small" data-act="close">← All tasks</button>
       <span class="pill ${esc(t.status)}">${esc(STATUS_LABEL[t.status] || t.status)}</span>
-      ${delegated ? `<span class="who">Delegated to Claude</span>` : ""}
     </div>
+    <div class="d-body">
+      <textarea class="d-title" id="f-title" rows="1" aria-label="Task title">${esc(t.title)}</textarea>
 
-    ${q ? `<div class="box ask">
-      <h3>Claude needs your answer</h3>
-      <p>${esc(q.text)}</p>
-      ${Array.isArray(q.options) && q.options.length ? `<div class="opts">${q.options.map((o, i) =>
-        `<button class="opt" data-act="answer" data-answer="${esc(o)}">${esc(o)}${q.recommended === i ? `<span class="rec">Recommended</span>` : ""}</button>`).join("")}</div>` : ""}
-      <div class="inline"><input id="f-answer" placeholder="Or type your answer"><button class="btn primary" data-act="answer-text">Send</button></div>
-    </div>` : ""}
+      ${q ? `<div class="box ask">
+        <h3>Claude needs your answer</h3>
+        <p>${esc(q.text)}</p>
+        ${Array.isArray(q.options) && q.options.length ? `<div class="opts">${q.options.map((o, i) =>
+          `<button class="opt" data-act="answer" data-answer="${esc(o)}">${esc(o)}${q.recommended === i ? `<span class="rec">Recommended</span>` : ""}</button>`).join("")}</div>` : ""}
+        <div class="inline"><input id="f-answer" placeholder="Or type your own answer"><button class="btn primary" data-act="answer-text">Send</button></div>
+      </div>` : ""}
 
-    ${t.status === "review" ? `<div class="box review">
-      <h3>Ready for your review</h3>
-      <p>Claude has finished. Check the result in the history below${sess ? " or in its session" : ""}.</p>
-      <div class="actions"><button class="btn primary" data-act="done">Accept and mark done</button></div>
-      <div class="inline"><input id="f-revise" placeholder="What should Claude change?"><button class="btn" data-act="revise">Send back</button></div>
-    </div>` : ""}
+      ${t.status === "review" ? `<div class="box review">
+        <h3>Ready for your review</h3>
+        <p>Claude has finished. Read the result in the history below${sess ? " or open the session" : ""}.</p>
+        <div class="actions"><button class="btn primary" data-act="done">Accept and mark done</button></div>
+        <div class="inline"><input id="f-revise" placeholder="What should Claude change?"><button class="btn" data-act="revise">Send back</button></div>
+      </div>` : ""}
 
-    <div class="field"><span>Priority</span>
-      <div class="seg">${PRI.map((p) => `<button class="${p}" data-act="pri" data-pri="${p}" aria-pressed="${t.priority === p}" title="${PRI_LABEL[p]}">${p}</button>`).join("")}</div>
+      <div class="field"><span>Priority</span>
+        <div class="seg">${PRI.map((p) => `<button class="${p}" data-act="pri" data-pri="${p}" aria-pressed="${t.priority === p}"><b>${p}</b><small>${PRI_LABEL[p]}</small></button>`).join("")}</div>
+      </div>
+
+      <div class="props">
+        <div class="field"><span>Due</span>
+          <input type="date" id="f-due" value="${esc(t.due)}" aria-label="Due date">
+          <div class="quickdates">
+            <button class="chip" data-act="due" data-due="${tdy}">Today</button>
+            <button class="chip" data-act="due" data-due="${addDays(tdy, 1)}">Tomorrow</button>
+            <button class="chip" data-act="due" data-due="${addDays(tdy, 7)}">Next week</button>
+            ${t.due ? `<button class="chip" data-act="due" data-due="">Clear</button>` : ""}
+          </div>
+        </div>
+        <label class="field"><span>Repeat</span><select id="f-repeat">${Object.entries(REPEAT).map(([k, v]) => `<option value="${k}"${t.repeat === k ? " selected" : ""}>${v}</option>`).join("")}</select></label>
+        <label class="field"><span>Type</span><select id="f-type">${Object.entries(TYPES).map(([k, v]) => `<option value="${k}"${t.type === k ? " selected" : ""}>${v}</option>`).join("")}</select></label>
+      </div>
+
+      <label class="field"><span>Details</span><textarea id="f-details" placeholder="Context, links, and what done looks like. Claude reads this when you delegate.">${esc(t.details)}</textarea></label>
+
+      ${delegated ? `<div class="box agentbox">
+        <h3>Claude agent</h3>
+        <dl class="kv">
+          <dt>Session</dt><dd>${sess ? `<a href="${esc(sess)}" target="_blank" rel="noopener">Open session ↗</a>` : "Not started yet"}</dd>
+          <dt>Run time</dt><dd>${cost.minutes != null ? esc(cost.minutes) + " min" : "—"}</dd>
+          <dt>Cost</dt><dd>${cost.usd != null ? "$" + Number(cost.usd).toFixed(2) : "—"}${cost.usd != null && cost.estimate ? " (estimate)" : cost.usd != null ? " (exact)" : ""}</dd>
+        </dl>
+        ${!sess && t.status === "queued" ? `<p>The session hasn't started. The hourly scheduler will start it, or start it now.</p><div class="actions"><button class="btn primary" data-act="start">Start Claude session</button></div>` : ""}
+        ${sess && !["done", "review"].includes(t.status) ? `<div class="actions"><button class="btn danger small" data-act="stop">Stop Claude</button></div>` : ""}
+      </div>` : ""}
+
+      ${pendingConfirm === "delegate" ? `<div class="confirm">
+        <div>Start a Claude session for this task? It runs on its own in auto mode and only messages you if it needs a decision.</div>
+        <div class="actions"><button class="btn primary" data-act="delegate-go">Start session</button><button class="btn" data-act="cancel">Cancel</button></div>
+      </div>` : ""}
+      ${pendingConfirm === "delete" ? `<div class="confirm">
+        <div>Delete this task?</div>
+        <div class="actions"><button class="btn danger" data-act="delete-go">Delete</button><button class="btn" data-act="cancel">Cancel</button></div>
+      </div>` : ""}
+
+      <div class="d-foot">
+        <div class="actions">
+          ${t.status !== "done" && !delegated ? `<button class="btn primary" data-act="delegate">Delegate to Claude</button>` : ""}
+          ${t.status === "done" ? `<button class="btn" data-act="reopen">Reopen</button>` : t.status !== "review" ? `<button class="btn" data-act="done">${ICON_CHECK} Mark done</button>` : ""}
+        </div>
+        <button class="btn ghost danger" data-act="delete">Delete</button>
+      </div>
+
+      <details id="f-history"${showHist ? " open" : ""}><summary>History · ${hist.length}</summary>
+        <ul class="history">${hist.map((h) => `<li><span class="mark ${h.by === "claude" ? "claude" : ""} ${esc(h.kind)}"></span><div><span class="by ${h.by === "claude" ? "claude" : ""}">${h.by === "claude" ? "Claude" : "You"}</span><span class="when">${esc(timeShort(h.at))}</span><span class="txt">${esc(h.text)}</span></div></li>`).join("")}</ul>
+      </details>
     </div>
-    <div class="grid2">
-      <label class="field"><span>Due</span><input type="date" id="f-due" value="${esc(t.due)}"></label>
-      <label class="field"><span>Repeat</span><select id="f-repeat">${Object.entries(REPEAT).map(([k, v]) => `<option value="${k}"${t.repeat === k ? " selected" : ""}>${v}</option>`).join("")}</select></label>
-      <label class="field"><span>Type</span><select id="f-type">${Object.entries(TYPES).map(([k, v]) => `<option value="${k}"${t.type === k ? " selected" : ""}>${v}</option>`).join("")}</select></label>
-    </div>
-    <label class="field"><span>Details</span><textarea id="f-details" placeholder="Context, links, and what done looks like. Claude reads this when you delegate.">${esc(t.details)}</textarea></label>
+    <div class="d-back"><button class="btn primary" data-act="close">← Back to all tasks</button></div>`;
 
-    ${delegated ? `<div class="box agent">
-      <h3>Claude agent</h3>
-      <dl class="kv">
-        <dt>Session</dt><dd>${sess ? `<a href="${esc(sess)}" target="_blank" rel="noopener">Open session</a>` : "Not started yet"}</dd>
-        <dt>Run time</dt><dd>${cost.minutes != null ? esc(cost.minutes) + " min" : "—"}</dd>
-        <dt>Cost</dt><dd>${cost.usd != null ? "$" + Number(cost.usd).toFixed(2) : "—"}${cost.estimate ? " (estimate)" : ""}</dd>
-      </dl>
-      ${!sess && t.status === "queued" ? `<p>The Claude session hasn't started yet.</p><div class="actions"><button class="btn primary" data-act="start">Start Claude session</button></div>` : ""}
-      ${sess && t.status !== "done" && t.status !== "review" ? `<div class="actions"><button class="btn danger" data-act="stop">Stop Claude</button></div>` : ""}
-    </div>` : ""}
-
-    ${pendingConfirm === "delegate" ? `<div class="confirm">
-      <div>Start a new Claude session for this task? Claude works on its own and messages you only if it needs a decision.</div>
-      <div class="actions"><button class="btn primary" data-act="delegate-go">Start session</button><button class="btn" data-act="cancel">Cancel</button></div>
-    </div>` : ""}
-    ${pendingConfirm === "delete" ? `<div class="confirm">
-      <div>Delete this task for good?</div>
-      <div class="actions"><button class="btn danger" data-act="delete-go">Delete</button><button class="btn" data-act="cancel">Cancel</button></div>
-    </div>` : ""}
-    ${flash ? `<div class="msg${flash.ok ? " ok" : ""}">${esc(flash.text)}</div>` : ""}
-
-    <div class="actions">
-      ${t.status !== "done" && !delegated ? `<button class="btn primary" data-act="delegate">Delegate to Claude</button>` : ""}
-      ${t.status === "done" ? `<button class="btn" data-act="reopen">Reopen</button>` : t.status !== "review" ? `<button class="btn" data-act="done">Mark done</button>` : ""}
-      <button class="btn danger" data-act="delete">Delete</button>
-    </div>
-
-    <details id="f-history"${showHist ? " open" : ""}><summary>History (${hist.length})</summary>
-      <ul class="history">${hist.map((h) => `<li><time>${esc(timeShort(h.at))}</time><div><span class="by ${h.by === "claude" ? "claude" : ""}">${h.by === "claude" ? "Claude" : "You"}</span><span class="txt">${esc(h.text)}</span></div></li>`).join("")}</ul>
-    </details>`;
-
+  pane.scrollTop = scroll;
+  fitTitle();
   if (focusId) {
     const el = document.getElementById(focusId);
     if (el) { el.focus(); if (caret && el.setSelectionRange) try { el.setSelectionRange(caret[0], caret[1]); } catch (e) {} }
   }
 }
+function fitTitle() { const el = $("#f-title"); if (el) { el.style.height = "auto"; el.style.height = el.scrollHeight + "px"; } }
 
-// ---------- actions ----------
-const debounced = {};
+// ---------- assistant panel ----------
+function renderPanel() {
+  const el = $("#panel");
+  if (!panel) { el.hidden = true; el.innerHTML = ""; return; }
+  el.hidden = false;
+  const head = (title) => `<div class="panel-head"><h2>${esc(title)}</h2><button class="btn ghost small" data-pact="close">Dismiss</button></div>`;
+  if (panel.state === "loading") { el.innerHTML = head(panel.kind === "focus" ? "Focus today" : "Reprioritize") + `<p><span class="spin"></span>${esc(panel.text)}</p>`; return; }
+  if (panel.state === "error") { el.innerHTML = head(panel.kind === "focus" ? "Focus today" : "Reprioritize") + `<p>${esc(panel.text)}</p>`; return; }
+  if (panel.kind === "focus") {
+    const picks = panel.picks.filter((p) => byId(p.id));
+    el.innerHTML = head("Suggested focus for today") + (picks.length
+      ? `<ol class="focus-list">${picks.map((p) => `<li><button class="linkish" data-pact="open" data-id="${esc(p.id)}">${esc(byId(p.id).title)}</button><span class="reason">${esc(p.reason)}</span></li>`).join("")}</ol>`
+      : `<p>No clear picks. Your open tasks look evenly weighted.</p>`);
+    return;
+  }
+  const changes = panel.changes.filter((c) => byId(c.id) && byId(c.id).priority !== c.priority && byId(c.id).status !== "done");
+  if (!changes.length) { el.innerHTML = head("Reprioritize") + `<p>Your priorities already look right. Claude suggests no changes.</p>`; return; }
+  const n = changes.filter((c) => panel.selected[c.id] !== false).length;
+  el.innerHTML = head("Suggested priority changes") +
+    `<p>Untick anything you want to keep as it is.</p>
+    <ul class="changes">${changes.map((c) => { const t = byId(c.id); return `<li class="change">
+      <input type="checkbox" id="rc-${esc(c.id)}" data-pact="toggle" data-id="${esc(c.id)}"${panel.selected[c.id] !== false ? " checked" : ""}>
+      <label for="rc-${esc(c.id)}"><span class="t">${esc(t.title)}</span><span class="move"><span class="pri ${esc(t.priority)}">${esc(t.priority)}</span>→<span class="pri ${esc(c.priority)}">${esc(c.priority)}</span></span><span class="reason">${esc(c.reason)}</span></label>
+    </li>`; }).join("")}</ul>
+    <div class="actions"><button class="btn primary" data-pact="apply"${n ? "" : " disabled"}>Apply ${n} change${n === 1 ? "" : "s"}</button><button class="btn" data-pact="close">Cancel</button></div>`;
+}
+
+function sampleError(e) {
+  return { not_granted: "Allow this page to ask Claude, then try again.", rate_limited: "Too many requests just now. Try again in a minute.", cancelled: "Cancelled." }[e && e.code]
+    || "Claude couldn't answer right now. Try again later.";
+}
+function taskBrief(t) {
+  return { id: t.id, title: t.title, details: (t.details || "").slice(0, 300), priority: t.priority, due: t.due || null,
+    status: t.status, with: t.assignee, ageDays: Math.max(0, Math.round((Date.now() - new Date(t.createdAt).getTime()) / 86400000)) || 0 };
+}
+
+async function suggestFocus() {
+  const open = inView("open").slice(0, 80);
+  if (!open.length) { panel = { kind: "focus", state: "error", text: "No open tasks to choose from." }; renderPanel(); return; }
+  panel = { kind: "focus", state: "loading", text: `Looking at your ${open.length} open tasks…` }; renderPanel();
+  const prompt = `Today is ${todayStr()}. These are my open to-do tasks as JSON:\n${JSON.stringify(open.map(taskBrief))}\n\n` +
+    `Pick the 3 tasks I personally should focus on today. Skip tasks that are with Claude unless they need my input or review. ` +
+    `Weigh priority (P0 most urgent), overdue and due dates, and anything waiting on me. ` +
+    `Reply with JSON only: {"picks":[{"id":"<task id>","reason":"<one short sentence>"}]}`;
+  try {
+    const out = await sample.json(prompt, { modelTier: "quick" });
+    panel = { kind: "focus", state: "ready", picks: (out && Array.isArray(out.picks) ? out.picks : []).slice(0, 3) };
+  } catch (e) { panel = { kind: "focus", state: "error", text: sampleError(e) }; }
+  renderPanel();
+}
+
+async function reprioritize() {
+  const open = inView("open").filter((t) => t.status !== "review").slice(0, 80);
+  if (open.length < 2) { panel = { kind: "reprio", state: "error", text: "Add a few more open tasks first. There's nothing to rebalance yet." }; renderPanel(); return; }
+  panel = { kind: "reprio", state: "loading", text: `Reviewing priorities for ${open.length} open tasks…` }; renderPanel();
+  const prompt = `Today is ${todayStr()}. These are my open to-do tasks as JSON:\n${JSON.stringify(open.map(taskBrief))}\n\n` +
+    `Re-assess each task's priority. Scale: P0 = must happen today or is overdue and important; P1 = this week; P2 = normal; P3 = someday or nice to have. ` +
+    `Use due dates, overdue status, what the title and details say about urgency and impact, and how long a task has waited. Keep the list balanced: only a few tasks should be P0. ` +
+    `Only include tasks whose priority should change. Reply with JSON only: {"changes":[{"id":"<task id>","priority":"P0|P1|P2|P3","reason":"<one short sentence>"}]}`;
+  try {
+    const out = await sample.json(prompt, { modelTier: "default" });
+    const changes = (out && Array.isArray(out.changes) ? out.changes : []).filter((c) => c && PRI.includes(c.priority) && byId(c.id));
+    panel = { kind: "reprio", state: "ready", changes, selected: {} };
+  } catch (e) { panel = { kind: "reprio", state: "error", text: sampleError(e) }; }
+  renderPanel();
+}
+
+async function applyReprioritize() {
+  const changes = panel.changes.filter((c) => panel.selected[c.id] !== false && byId(c.id) && byId(c.id).priority !== c.priority);
+  const before = changes.map((c) => ({ id: c.id, priority: byId(c.id).priority }));
+  panel = null; renderPanel();
+  await Promise.all(changes.map((c) => { const t = byId(c.id);
+    return save(c.id, { priority: c.priority, history: withHistory(t, { kind: "note", text: `Priority ${t.priority} → ${c.priority} (reprioritized: ${c.reason})` }) }); }));
+  toast(`Updated ${changes.length} priorit${changes.length === 1 ? "y" : "ies"}.`, { undo: () => {
+    before.forEach((b) => { const t = byId(b.id); if (t) save(b.id, { priority: b.priority, history: withHistory(t, { kind: "note", text: `Priority back to ${b.priority} (undo)` }) }); });
+    toast("Priorities restored.");
+  } });
+}
+
+// ---------- task actions ----------
 function saveField(id, field, value) {
   clearTimeout(debounced[id + field]);
-  debounced[id + field] = setTimeout(() => save(id, { [field]: value }), 500);
+  debounced[id + field] = setTimeout(() => save(id, { [field]: value }), 450);
 }
-
-async function getMcp() {
-  if (!mcp) mcp = await claude.use("mcp");
-  return mcp;
-}
+async function getMcp() { if (!mcp) mcp = await claude.use("mcp"); return mcp; }
 function mcpMessage(e) {
   switch (e && e.code) {
     case "server_not_connected": return `Add the ${CCR} connector in claude.ai Settings → Connectors, then try again.`;
@@ -445,80 +674,70 @@ function mcpMessage(e) {
     default: return `Couldn't confirm that went through (${(e && e.code) || "unknown error"}). Check your Claude Code sessions before trying again.`;
   }
 }
-
 function agentPrompt(t) {
   return [
-    `Work on Task Master task ${t.id}.`,
-    ``,
-    `Task store: the Task Master artifact ${ARTIFACT_URL || "(URL not set)"}, collection "tasks", document "${t.id}". Read and update it with the ArtifactData tool.`,
-    `Follow the "Role: Task agent" rules in CLAUDE.md in this repo.`,
-    ``,
+    `Work on Task Master task ${t.id}.`, ``,
+    `Task store: the Task Master artifact ${ARTIFACT_URL}, collection "tasks", document "${t.id}". Read and update it with the ArtifactData tool.`,
+    `Follow the "Role: Task agent" rules in CLAUDE.md in this repo.`, ``,
     `Title: ${t.title}`,
     `Priority: ${t.priority}${t.due ? `\nDue: ${t.due}` : ""}${t.type ? `\nType: ${t.type}` : ""}`,
-    `Details:`,
-    t.details || "(none)",
+    `Details:`, t.details || "(none)",
   ].join("\n");
 }
 
 async function delegate(t) {
   const m = await getMcp();
-  if (!m) { flash = { text: "Connectors aren't available in this view. Open the page in the Claude app." }; render(); return; }
+  if (!m) { toast("Connectors aren't available in this view. Open the page in the Claude app.", { error: true }); return; }
   await save(t.id, { assignee: "claude", status: "queued", history: withHistory(t, { kind: "status", text: "Delegated to Claude" }) });
-  await startSession(tasks.find((x) => x.id === t.id) || t);
+  await startSession(byId(t.id) || t);
 }
-
-// Starts the task's Claude session. Also used by the retry button when an earlier start didn't go through.
+// Also used by the retry button when an earlier start didn't go through.
 async function startSession(t) {
   const m = await getMcp();
-  if (!m) { flash = { text: "Connectors aren't available in this view. Open the page in the Claude app." }; render(); return; }
+  if (!m) { toast("Connectors aren't available in this view. Open the page in the Claude app.", { error: true }); return; }
   try {
     const res = await m.callTool(CCR, "create_session", { title: `Task: ${t.title}`.slice(0, 200), source_url: REPO_URL, prompt: agentPrompt(t), tags: ["task-master"], permission_mode: "auto" });
     const p = res.payload || {};
     const id = (p.ccr && p.ccr.id) || p.id || p.session_id;
     if (!id) throw { code: "upstream_error" };
-    const fresh = tasks.find((x) => x.id === t.id) || t;
+    const fresh = byId(t.id) || t;
     await save(t.id, { session: { id, url: "https://claude.ai/code/" + id }, history: withHistory(fresh, { kind: "status", text: "Claude session started" }) });
-    flash = { text: "Claude is on it. You'll get a notification if it needs you.", ok: true };
+    toast("Claude is on it. You'll be notified if it needs you.");
   } catch (e) {
-    flash = { text: mcpMessage(e) + " You can press Start Claude session to try again, or leave it: the daily scheduler starts queued tasks." };
+    toast(mcpMessage(e) + " The task stays queued; the hourly scheduler will start it.", { error: true });
   }
-  render();
 }
-
 async function answer(t, text) {
   text = String(text || "").trim();
   if (!text) return;
-  const m = t.session && t.session.id ? await getMcp() : null;
   if (t.session && t.session.id) {
-    if (!m) { flash = { text: "Connectors aren't available in this view. Open the page in the Claude app." }; render(); return; }
+    const m = await getMcp();
+    if (!m) { toast("Connectors aren't available in this view. Open the page in the Claude app.", { error: true }); return; }
     try { await m.callTool(CCR, "send_message", { session_id: t.session.id, message: `Answer for task ${t.id}: ${text}` }); }
-    catch (e) { flash = { text: mcpMessage(e) }; render(); return; }
+    catch (e) { toast(mcpMessage(e), { error: true }); return; }
   }
-  flash = { text: "Answer sent. Claude will carry on.", ok: true };
   await save(t.id, { question: null, status: "in-progress", history: withHistory(t, { kind: "answer", text }) });
+  toast("Answer sent. Claude will carry on.");
 }
-
 async function revise(t, note) {
   note = String(note || "").trim();
   if (!note) return;
   const m = t.session && t.session.id ? await getMcp() : null;
-  if (!m) { flash = { text: "This task has no Claude session to send changes to." }; render(); return; }
+  if (!m) { toast("This task has no Claude session to send changes to.", { error: true }); return; }
   try { await m.callTool(CCR, "send_message", { session_id: t.session.id, message: `revise: ${note}` }); }
-  catch (e) { flash = { text: mcpMessage(e) }; render(); return; }
-  flash = { text: "Sent back to Claude.", ok: true };
+  catch (e) { toast(mcpMessage(e), { error: true }); return; }
   await save(t.id, { status: "in-progress", history: withHistory(t, { kind: "note", text: "Revise: " + note }) });
+  toast("Sent back to Claude.");
 }
-
 async function stopAgent(t) {
   const m = await getMcp();
   if (m && t.session && t.session.id) {
     try { await m.callTool(CCR, "interrupt_session", { session_id: t.session.id }); }
-    catch (e) { flash = { text: mcpMessage(e) }; render(); return; }
+    catch (e) { toast(mcpMessage(e), { error: true }); return; }
   }
-  flash = { text: "Claude stopped. The task is back with you.", ok: true };
   await save(t.id, { status: "todo", assignee: "me", question: null, history: withHistory(t, { kind: "status", text: "Stopped Claude" }) });
+  toast("Claude stopped. The task is back with you.");
 }
-
 function nextDue(t) {
   const base = t.due && t.due >= todayStr() ? t.due : todayStr();
   if (t.repeat === "daily") return addDays(base, 1);
@@ -526,16 +745,34 @@ function nextDue(t) {
   const d = new Date(base + "T00:00:00"); d.setMonth(d.getMonth() + 1); return ymd(d);
 }
 async function markDone(t) {
+  const prev = { status: t.status, doneAt: t.doneAt || null, question: t.question || null };
   await save(t.id, { status: "done", doneAt: nowIso(), question: null, history: withHistory(t, { kind: "status", text: "Marked done" }) });
+  let nextRef = null;
   if (t.repeat) {
-    const ref = db.collection("tasks").doc();
-    // A repeating task Claude handles is queued again; the daily scheduler starts its session.
+    // A repeating task Claude handles is queued again; the scheduler starts its session.
     const byClaude = t.assignee === "claude";
+    nextRef = db.collection("tasks").doc();
     const next = blankTask({ title: t.title, details: t.details, priority: t.priority, type: t.type, repeat: t.repeat, due: nextDue(t),
       assignee: byClaude ? "claude" : "me", status: byClaude ? "queued" : "todo",
       history: [{ at: nowIso(), by: "me", kind: "status", text: "Created from a repeating task" + (byClaude ? ", queued for Claude" : "") }] });
-    try { await ref.set(next); flash = { text: `Done. Next one is due ${next.due}.`, ok: true }; } catch (e) { showBanner(storeError(e)); }
+    try { await nextRef.set(next); } catch (e) { toast(storeError(e), { error: true }); nextRef = null; }
   }
+  if (selectedId === t.id && view !== "done") selectedId = null;
+  toast(nextRef ? "Done. The next one is scheduled." : `Done: “${t.title}”`, { undo: async () => {
+    const cur = byId(t.id); if (cur) await save(t.id, { ...prev, history: withHistory(cur, { kind: "status", text: "Undid mark done" }) });
+    if (nextRef) nextRef.delete().catch(() => {});
+  } });
+  render();
+}
+async function reopen(t) {
+  await save(t.id, { status: t.assignee === "claude" ? "review" : "todo", doneAt: null, history: withHistory(t, { kind: "status", text: "Reopened" }) });
+  toast("Reopened.");
+}
+async function deleteTask(t) {
+  const { id, ...data } = t;
+  try { await db.doc("tasks/" + id).delete(); } catch (e) { toast(storeError(e), { error: true }); return; }
+  selectedId = null;
+  toast(`Deleted “${t.title}”`, { undo: () => db.doc("tasks/" + id).set(data).catch((e) => toast(storeError(e), { error: true })) });
   render();
 }
 
@@ -544,25 +781,52 @@ $("#quick").addEventListener("submit", (e) => {
   e.preventDefault();
   if (!db) { showBanner("Tasks can't be saved here. Open this page in the Claude app while signed in."); return; }
   const input = $("#q-title");
-  addTask(input.value, $("#q-pri").value);
+  addTask(input.value, quickPri);
   input.value = "";
 });
-$("#tabs").addEventListener("click", (e) => {
-  const b = e.target.closest("button[data-view]");
+$("#quick").addEventListener("click", (e) => {
+  const c = e.target.closest("[data-qpri]");
+  if (!c) return;
+  quickPri = c.dataset.qpri;
+  document.querySelectorAll("[data-qpri]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.qpri === quickPri)));
+  $("#q-title").focus();
+});
+document.querySelector(".tiles").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-view]");
   if (b) { view = b.dataset.view; render(); }
 });
+$("#search").addEventListener("input", (e) => { query = e.target.value.trim().toLowerCase(); renderList(); });
 $("#list").addEventListener("click", (e) => {
-  const r = e.target.closest(".row");
-  if (r) { selectedId = r.dataset.id; pendingConfirm = null; flash = null; render(); }
-});
-$("#detail").addEventListener("input", (e) => {
-  const t = tasks.find((x) => x.id === selectedId);
+  const row = e.target.closest(".row");
+  if (!row) return;
+  const t = byId(row.dataset.id);
   if (!t) return;
-  if (e.target.id === "f-title") saveField(t.id, "title", e.target.value);
+  if (e.target.closest("[data-check]")) { t.status === "done" ? reopen(t) : markDone(t); return; }
+  selectedId = t.id; pendingConfirm = null; render();
+});
+$("#panel").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-pact]");
+  if (!b) return;
+  const a = b.dataset.pact;
+  if (a === "close") { panel = null; renderPanel(); }
+  if (a === "open") { selectedId = b.dataset.id; view = "open"; render(); }
+  if (a === "apply") applyReprioritize();
+});
+$("#panel").addEventListener("change", (e) => {
+  if (e.target.dataset.pact === "toggle" && panel) { panel.selected[e.target.dataset.id] = e.target.checked; renderPanel(); }
+});
+$("#home").addEventListener("click", () => { view = "open"; selectedId = null; query = ""; $("#search").value = ""; render(); });
+$("#focus-btn").addEventListener("click", suggestFocus);
+$("#reprio-btn").addEventListener("click", reprioritize);
+
+$("#detail").addEventListener("input", (e) => {
+  const t = byId(selectedId);
+  if (!t) return;
+  if (e.target.id === "f-title") { fitTitle(); saveField(t.id, "title", e.target.value.replace(/\n/g, " ")); }
   if (e.target.id === "f-details") saveField(t.id, "details", e.target.value);
 });
 $("#detail").addEventListener("change", (e) => {
-  const t = tasks.find((x) => x.id === selectedId);
+  const t = byId(selectedId);
   if (!t) return;
   if (e.target.id === "f-due") save(t.id, { due: e.target.value });
   if (e.target.id === "f-repeat") save(t.id, { repeat: e.target.value });
@@ -571,25 +835,28 @@ $("#detail").addEventListener("change", (e) => {
 $("#detail").addEventListener("toggle", (e) => {
   if (e.target.id === "f-history" && selectedId) historyOpen[selectedId] = e.target.open;
 }, true);
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && selectedId && !pendingConfirm) { selectedId = null; render(); }
-});
 $("#detail").addEventListener("keydown", (e) => {
   if (e.key !== "Enter") return;
+  if (e.target.id === "f-title") { e.preventDefault(); e.target.blur(); }
   if (e.target.id === "f-answer") { e.preventDefault(); $('[data-act="answer-text"]').click(); }
   if (e.target.id === "f-revise") { e.preventDefault(); $('[data-act="revise"]').click(); }
+});
+document.addEventListener("keydown", (e) => {
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || "");
+  if (e.key === "Escape" && selectedId && !pendingConfirm) { selectedId = null; render(); return; }
+  if (!typing && (e.key === "n" || e.key === "N") && !e.metaKey && !e.ctrlKey) { e.preventDefault(); $("#q-title").focus(); }
 });
 $("#detail").addEventListener("click", async (e) => {
   const b = e.target.closest("[data-act]");
   if (!b) return;
-  const t = tasks.find((x) => x.id === selectedId);
+  const t = byId(selectedId);
   const act = b.dataset.act;
   if (act === "close") { selectedId = null; render(); return; }
   if (!t) return;
-  flash = null;
-  if (act === "pri") { save(t.id, { priority: b.dataset.pri }); return; }
-  if (act === "delegate" || act === "delete") { pendingConfirm = act; render(); return; }
-  if (act === "cancel") { pendingConfirm = null; render(); return; }
+  if (act === "pri") { if (t.priority !== b.dataset.pri) save(t.id, { priority: b.dataset.pri, history: withHistory(t, { kind: "note", text: `Priority ${t.priority} → ${b.dataset.pri}` }) }); return; }
+  if (act === "due") { save(t.id, { due: b.dataset.due }); return; }
+  if (act === "delegate" || act === "delete") { pendingConfirm = act; renderDetail(); return; }
+  if (act === "cancel") { pendingConfirm = null; renderDetail(); return; }
   pendingConfirm = null;
   b.disabled = true;
   if (act === "delegate-go") await delegate(t);
@@ -599,46 +866,13 @@ $("#detail").addEventListener("click", async (e) => {
   if (act === "revise") await revise(t, $("#f-revise").value);
   if (act === "stop") await stopAgent(t);
   if (act === "done") await markDone(t);
-  if (act === "reopen") await save(t.id, { status: t.assignee === "claude" ? "review" : "todo", doneAt: null, history: withHistory(t, { kind: "status", text: "Reopened" }) });
-  if (act === "delete-go") { try { await db.doc("tasks/" + t.id).delete(); selectedId = null; } catch (err) { showBanner(storeError(err)); } }
+  if (act === "reopen") await reopen(t);
+  if (act === "delete-go") await deleteTask(t);
   render();
 });
 
-// ---------- focus suggestions ----------
-let sample = null;
-async function suggestFocus() {
-  const box = $("#focus"), btn = $("#focus-btn");
-  const open = inView("open").slice(0, 60);
-  box.hidden = false;
-  if (!open.length) { box.innerHTML = `<h3>Focus</h3><p>No open tasks to choose from.</p>`; return; }
-  btn.disabled = true;
-  box.innerHTML = `<h3>Focus</h3><p>Looking at your ${open.length} open tasks…</p>`;
-  const list = open.map((t) => ({ id: t.id, title: t.title, priority: t.priority, due: t.due || null, status: t.status, with: t.assignee }));
-  const prompt = `Today is ${todayStr()}. Here are my open to-do tasks as JSON:\n${JSON.stringify(list)}\n\n` +
-    `Pick the 3 tasks I personally should focus on today (skip tasks that are with Claude unless they need my input). ` +
-    `Weigh priority (P0 most urgent), overdue and due dates, and anything waiting on me. ` +
-    `Reply with JSON only: {"picks":[{"id":"<task id>","reason":"<one short sentence>"}]}`;
-  try {
-    const out = await sample.json(prompt, { modelTier: "quick" });
-    const picks = (out && Array.isArray(out.picks) ? out.picks : []).filter((p) => tasks.some((t) => t.id === p.id)).slice(0, 3);
-    box.innerHTML = `<h3>Suggested focus for today</h3>` + (picks.length
-      ? `<ol class="focus-list">${picks.map((p) => `<li><button data-id="${esc(p.id)}">${esc(tasks.find((t) => t.id === p.id).title)}</button><br><span>${esc(p.reason)}</span></li>`).join("")}</ol>`
-      : `<p>No clear picks. Your open tasks look evenly weighted.</p>`) +
-      `<div class="actions"><button class="btn small" data-close="1">Dismiss</button></div>`;
-  } catch (e) {
-    const msg = { not_granted: "Allow this page to ask Claude, then try again.", rate_limited: "Too many requests just now. Try again in a minute.", cancelled: "Cancelled." }[e && e.code] || "Claude couldn't suggest a focus right now. Try again later.";
-    box.innerHTML = `<h3>Focus</h3><p>${esc(msg)}</p><div class="actions"><button class="btn small" data-close="1">Dismiss</button></div>`;
-  }
-  btn.disabled = false;
-}
-$("#focus-btn").addEventListener("click", suggestFocus);
-$("#focus").addEventListener("click", (e) => {
-  const pick = e.target.closest("button[data-id]");
-  if (pick) { selectedId = pick.dataset.id; view = "open"; render(); return; }
-  if (e.target.closest("button[data-close]")) $("#focus").hidden = true;
-});
-
 // ---------- boot ----------
+$("#today").textContent = new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
 async function waitForClaude() {
   for (let i = 0; i < 30 && !(window.claude && window.claude.use); i++) await new Promise((r) => setTimeout(r, 100));
   return !!(window.claude && window.claude.use);
@@ -646,18 +880,17 @@ async function waitForClaude() {
 (async () => {
   render();
   if (!(await waitForClaude())) { loaded = true; showBanner("Open this page in the Claude app to see and edit your tasks."); render(); return; }
-  claude.use("sample").then((s) => { sample = s; $("#focus-btn").hidden = !s; });
+  claude.use("sample").then((s) => { sample = s; $("#focus-btn").hidden = !s; $("#reprio-btn").hidden = !s; });
   db = await claude.use("db");
   if (!db) { loaded = true; showBanner("Your tasks couldn't load here. Open this page in the Claude app while signed in."); render(); return; }
+  let first = true;
   db.collection("tasks").limit(1000).onSnapshot((snap) => {
     tasks = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     loaded = true;
-    if (!inView("needs").length && view === "needs") view = "open";
-    if (selectedId && !tasks.some((t) => t.id === selectedId)) selectedId = null;
+    if (first) { first = false; if (inView("needs").length) view = "needs"; }
+    if (selectedId && !byId(selectedId)) selectedId = null;
     const typing = document.activeElement && ["f-title", "f-details", "f-answer", "f-revise"].includes(document.activeElement.id);
-    if (typing) { renderList(); } else { render(); }
+    if (typing) { renderTiles(); renderList(); } else { render(); }
   }, (err) => { loaded = true; showBanner(err && err.code === "revoked" ? "" : "Live updates stopped. Reload the page to reconnect."); render(); });
-  // Open on "Needs you" when Claude is waiting.
-  setTimeout(() => { if (inView("needs").length) { view = "needs"; render(); } }, 1500);
 })();
 </script>

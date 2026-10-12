@@ -13,7 +13,8 @@ This is a personal to-do list. I can add tasks, set their priority, give them de
 | **Task Master app** | Private claude.ai artifact: the UI and the task database | https://claude.ai/artifact/9XBCgHprdE8jEVJRrBLaS3, source `app/index.html` |
 | **Task agent** | One Claude Code cloud session per delegated task | Started from the app, or by the scheduler |
 | **Agent rules** | How agents, the scheduler and chat sessions behave | `CLAUDE.md` |
-| **Daily scheduler** | Claude routine at 07:52 IST | Routine "Task Master daily scheduler" |
+| **Hourly pickup** | Claude routine, every hour: starts queued tasks, fills repeat gaps, writes exact costs | Routine "Task Master hourly pickup" |
+| **Daily reminder** | Claude routine at 07:52 IST: push summary | Routine "Task Master daily reminder" |
 | **Front desk** (optional) | Any Claude Code chat on this repo, for managing tasks by typing | Claude app → Code |
 
 ```
@@ -24,7 +25,7 @@ This is a personal to-do list. I can add tasks, set their priority, give them de
           ▼                                                    │
      tasks database ◄──── ArtifactData reads/writes ───────────┘ Task agent
           ▲                                                      (also asks me in-session)
-          └──── Daily scheduler: reminders, pick up queued, exact cost
+          └──── Hourly pickup (start queued, repeats, exact cost) + daily 07:52 reminder
 ```
 
 Out of scope: multiple users and sharing.
@@ -59,14 +60,16 @@ Key: ✅ built · ⏳ partly built · ☐ not built. **M** = must, **S** = shoul
 ### 4.2 Prioritize and view
 - ✅ **FR-5 (M)** Views: **Needs you**, **Open**, **With Claude**, **Done**. Tasks waiting on me sort first, then by priority, then by due date.
 - ✅ **FR-6 (M)** Overdue and due-soon tasks are flagged in the list and in the header summary.
-- ✅ **FR-7 (S)** "What should I focus on?" asks Claude for a top 3 with reasons. It is a suggestion only and changes nothing.
+- ✅ **FR-7 (S)** "Focus today" asks Claude for a top 3 with reasons. It is a suggestion only and changes nothing.
+- ✅ **FR-7a (M)** "Reprioritize" asks Claude to re-assess every open task's priority. The suggested changes appear with reasons; I untick any I disagree with, apply the rest, and can undo.
+- ✅ **FR-7b (S)** The Open view is grouped by priority. Search, a one-tap complete circle, quick due dates (Today, Tomorrow, Next week), and undo for done and delete.
 
 ### 4.3 Delegate to Claude
 - ✅ **FR-8 (M)** Any task type can be delegated. After an in-page confirmation, the app starts a new Claude Code session with the task's title and details and links it on the task.
 - ✅ **FR-9 (M)** The agent acts autonomously, including outward actions, and logs each one in the task history.
 - ✅ **FR-10 (M)** The agent finishes in `review`, never `done`. I accept the result, or send it back with a note that goes to the session.
 - ✅ **FR-11 (S)** "Stop Claude" interrupts the session and hands the task back to me.
-- ✅ **FR-12 (M)** Tasks queued without a session, such as repeats or chat-queued tasks, are started by the scheduler.
+- ✅ **FR-12 (M)** Tasks queued without a session, such as repeats or failed starts, are started by the hourly pickup within an hour. Sessions run in auto mode.
 
 ### 4.4 Critical questions
 - ✅ **FR-13 (M)** The agent asks only when:
@@ -81,7 +84,7 @@ Key: ✅ built · ⏳ partly built · ☐ not built. **M** = must, **S** = shoul
 ### 4.5 Reminders and repeats
 - ✅ **FR-16 (M)** The daily scheduler sends one push summary of overdue, due-today and due-tomorrow tasks.
 - ✅ **FR-17 (M)** Marking a repeating task done creates the next copy. A copy of a Claude task is queued again for Claude.
-- ☐ **FR-18 (S)** Snooze.
+- ✅ **FR-18 (S)** Snooze with quick due-date chips.
 
 ### 4.6 Cost
 - ✅ **FR-19 (M)** Each delegated task shows run time and cost.
