@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "ArtifactData"
+      "ArtifactData",
+      "WebSearch",
+      "WebFetch"
     ]
   }
 }
