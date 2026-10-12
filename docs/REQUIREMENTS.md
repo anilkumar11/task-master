@@ -178,6 +178,7 @@ Priority key: **M** = MVP, **S** = should, **C** = later.
 
 ## 10. Known risks
 
-- **Cost visibility:** a session may not be able to read its own exact cost. FR-26 falls back to run time marked `estimate`.
-- **Connector access in task sessions:** must be checked in phase 0. If it fails, `type:action` tasks run from the front-desk session instead.
+- **Cost visibility: solved.** A session can't read its own cost, but its record can be read afterwards. The test task's session reported `total_cost_usd` 0.77 for about 1 minute of work. The agent writes an estimate, and the daily scheduler replaces it with the exact figure.
+- **Connector access in task sessions: checked 2026-10-12, works.** Gmail ✅ and Calendar ✅. Drive ✅ through `search_files`; `list_recent_files` returns "not implemented".
+- **Agent writes to the app:** not yet checked. A task session needs the ArtifactData tool to update its task in the app. Check this with the first task delegated from the app.
 - **Full autonomy:** a misread task can lead to a real outward action. Mitigated by the critical-question rules (FR-16), the action log (NFR-5), and the option to add an "always ask before" list in `CLAUDE.md` later.

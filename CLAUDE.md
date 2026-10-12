@@ -46,6 +46,7 @@ The owner mostly uses the app. In chat:
 
 1. Read the task document. Set `status: "in-progress"` and add a history entry.
 2. Do the work. **Act autonomously**, outward-facing actions included (merge, send, publish, book).
+   Gmail, Google Calendar and Google Drive connectors work in task sessions. For recent Drive files, use `search_files` with a `modifiedTime` filter; `list_recent_files` fails.
 3. **Log every outward action** as a history entry with `kind: "action"`, e.g. `Sent email to … → <link>`.
 4. **Ask the owner only when:**
    - there is ambiguity that changes the result (two reasonable readings give different outcomes);
@@ -75,3 +76,4 @@ The owner mostly uses the app. In chat:
 1. **Reminders:** collect tasks that aren't done and are overdue, due today, or due tomorrow. End the run with one short, phone-friendly summary; that final message is the owner's push notification.
 2. **Recurring:** the app creates the next copy when a repeating task is marked done. Only fill gaps: a task marked done in the last 24 hours with `repeat` set and no newer open task with the same title.
 3. **Pick up:** for each `assignee: "claude"` + `status: "queued"` task with no `session`, start a task session as the Front desk does.
+4. **Exact cost:** for each task with a `session` whose `cost.estimate` isn't `false`, read the session's `result` events (`list_events` with `kinds: ["result"]`). Sum their `total_cost_usd` and `duration_ms`, then write `cost: {usd, minutes, estimate: false}`.
