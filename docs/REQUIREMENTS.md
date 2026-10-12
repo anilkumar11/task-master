@@ -1,171 +1,178 @@
-# Task Master: Requirements (Draft v0.1)
+# Task Master: Requirements (v0.2)
 
-> Status: **Draft for review.** Section 9 lists the open questions. Answer those before any code is written.
+> Status: **Decisions made, ready to build phase 0.** See section 9 for what changed since v0.1.
 
 ## 1. Vision
 
-This is a personal to-do list. I can add tasks, set their priority, give them detail, and hand some of them to a Claude agent that does the work. While it works, the agent can stop and ask me a question when it needs a decision only I can make. I use it from the Claude app on my PC and on my phone, and it all stays in sync.
+This is a personal to-do list. I can add tasks, set their priority, give them detail, and hand any of them to a Claude agent. Each delegated task gets its own Claude session, which works on its own and stops only to ask me a critical question. I use it from the Claude app on my PC and on my phone, and it all stays in sync.
 
 ## 2. Users and surfaces
 
 | Who | Surface | What they do |
 |-----|---------|--------------|
-| Me (owner, the only human user) | Claude app on desktop (Windows/Mac/web) | Add and edit tasks, review agent work, answer questions |
-| Me | Claude app on mobile (iOS/Android) | Capture tasks quickly, set priority, answer agent questions, approve results |
-| Claude agent | Cloud (Claude Code on the web) | Pick up delegated tasks, do the work, ask questions, report results |
+| Me (owner, the only human user) | Claude app, desktop | Add and edit tasks, review agent work, answer questions |
+| Me | Claude app, mobile | Capture tasks quickly, set priority, answer agent questions |
+| Me | GitHub (web or mobile) | An acceptable fallback interface: tasks are GitHub Issues |
+| **Front-desk Claude** | Any Claude Code session on this repo | Turns my plain-language requests into issues and starts agent sessions |
+| **Task agent** | One Claude Code cloud session per delegated task | Does the work, asks questions, reports results and cost |
+| **Scheduler** | A daily Claude routine | Sends due-date reminders, creates recurring tasks, picks up queued tasks |
 
-Out of scope for v1: multiple users, teams, sharing tasks with other people.
+Out of scope: multiple users and sharing.
 
 ## 3. Core concepts
 
-### 3.1 Task fields
+### 3.1 Task fields (GitHub Issue)
 
-| Field | Required | Notes |
-|-------|----------|-------|
-| `id` | auto | Stable, short (e.g. `#42`) |
-| `title` | yes | One line |
-| `details` | no | Free-form markdown: context, links, acceptance criteria, sub-steps |
-| `priority` | yes (default P2) | `P0` urgent/today · `P1` this week · `P2` normal · `P3` someday |
-| `status` | auto | See 3.2 |
-| `assignee` | yes (default `me`) | `me` or `claude` |
-| `due` | no | Date |
-| `tags` | no | e.g. `home`, `work`, `code` |
-| `repo` / `workspace` | only when delegated | Where the agent may work (a GitHub repo, a doc, or "research only") |
-| `history` | auto | Status changes, agent questions and answers, results |
+| Field | Where it lives | Notes |
+|-------|----------------|-------|
+| `id` | Issue number | `#42` |
+| `title` | Issue title | One line |
+| `details` | Issue body | Context, Done-when, Workspace (from the issue template) |
+| `priority` | Label `P0`–`P3` | Default `P2` |
+| `status` | Open/closed plus a status label | See 3.2 |
+| `assignee` | Label `assignee:claude` | No label means the task is mine |
+| `type` | Label `type:code` / `type:research` / `type:writing` / `type:action` | Tells the agent which tools it needs |
+| `due` | `Due: YYYY-MM-DD` line in the body | Read by the scheduler |
+| `recurrence` | `Repeat: daily / weekly:Mon / monthly:1` line in the body | Read by the scheduler |
+| `session` | `Session:` line in the body | Link to the agent's Claude session |
+| `cost` | `Cost:` section in the body | Updated by the agent (see 4.7) |
+| `history` | Issue comments | Progress, questions and answers, actions taken, results |
 
 ### 3.2 Task lifecycle
 
 ```
-            ┌──────────── (I do it) ───────────────┐
-            │                                      ▼
- [todo] ──delegate──► [queued] ─► [in-progress] ─► [review] ─► [done]
-            ▲                         │   ▲           │
-            │                         ▼   │ answer    │ reject / revise
-            │                    [needs-input]        │
-            └─────────────────── [cancelled] ◄────────┘
+ [todo] ──delegate──► [queued] ─► [in-progress] ─► [review] ─► [done (closed)]
+                                      │   ▲           │
+                                      ▼   │ answer    │ "revise: …"
+                                 [needs-input]        ▼
+                                                [in-progress]
 ```
 
-- `needs-input`: the agent is blocked on a question from me. This status has to be impossible to miss on every surface.
-- `review`: the agent believes the task is finished. I accept it (→ `done`) or send it back with comments (→ `in-progress`).
+Status labels: `queued`, `in-progress`, `needs-input`, `review`. A closed issue means the task is done or was cancelled.
 
 ## 4. Functional requirements
 
-Priority key: **M** = must for MVP, **S** = should, **C** = could, later.
+Priority key: **M** = MVP, **S** = should, **C** = later.
 
 ### 4.1 Add tasks
-- **FR-1 (M)** Add a task with just a title in one step, from desktop or mobile.
-- **FR-2 (S)** Add from plain language, e.g. "remind me to renew passport, high priority, due Friday" becomes title, priority and due date.
-- **FR-3 (C)** Add by voice on mobile, or from an email or screenshot.
+- **FR-1 (M)** I add a task in plain language from the Claude app, e.g. "add: renew passport, P1, due Friday". Front-desk Claude creates the issue with the right labels and fields and confirms with its link.
+- **FR-2 (M)** I can also add a task from GitHub using the issue template.
+- **FR-3 (C)** Add by voice, or from an email or screenshot.
 
 ### 4.2 Prioritize
-- **FR-4 (M)** Set and change a task's priority (P0–P3).
-- **FR-5 (M)** The default view sorts open tasks by priority, then due date.
-- **FR-6 (S)** Ask Claude "what should I focus on today?" and get a suggested top 3 with reasons. It never reorders anything without my say-so.
+- **FR-4 (M)** Set and change priority (P0–P3) from the Claude app or GitHub.
+- **FR-5 (M)** "Show my tasks" lists open tasks by priority, then due date, with `needs-input` tasks always first.
+- **FR-6 (S)** "What should I focus on today?" returns a suggested top 3 with reasons. It is a suggestion only and changes nothing.
 
 ### 4.3 Details
-- **FR-7 (M)** Add and edit markdown details on any task.
-- **FR-8 (S)** Add checklists or sub-tasks inside details.
-- **FR-9 (C)** Attach files or links.
+- **FR-7 (M)** Edit markdown details on any task.
+- **FR-8 (S)** Checklists inside details. The agent ticks items off as it completes them.
 
-### 4.4 Delegate to Claude
-- **FR-10 (M)** Mark any task as delegated to Claude. Before it starts, the agent gets the title, the details and the allowed workspace.
-- **FR-11 (M)** Before accepting, the agent checks the task is clear enough to start. If it isn't, it asks first (see 4.5) rather than guessing.
-- **FR-12 (M)** The agent posts progress updates and a final result summary to the task's history. The summary lists what changed and links to PRs, files or docs.
-- **FR-13 (M)** The agent never marks a task `done` itself. It moves the task to `review`.
-- **FR-14 (S)** I can stop or cancel a running agent task.
-- **FR-15 (S)** Limits on concurrency and cost, e.g. at most 2 agent tasks running at once and a maximum run time per task.
+### 4.4 Delegate to Claude (one session per task)
+- **FR-9 (M)** Any task type can be delegated: code, research, writing, or actions in my accounts (email, calendar, Drive).
+- **FR-10 (M)** Delegating adds the `assignee:claude` and `queued` labels. Front-desk Claude then **starts a new Claude Code cloud session for that task** and writes the session link into the issue.
+- **FR-11 (M)** If I label a task from GitHub instead of from Claude, the scheduler starts a session for it on its next run.
+- **FR-12 (M)** The agent works **autonomously**, including outward-facing actions (merging, sending, publishing, booking). Every outward action is logged as a comment on the issue, saying what was done and where.
+- **FR-13 (M)** When it finishes, the agent posts a result summary (what changed, links, actions taken) and moves the task to `review`. It never closes the issue itself.
+- **FR-14 (M)** I review the task: closing the issue means done, and commenting "revise: …" sends it back to the agent.
+- **FR-15 (S)** I can stop an agent ("stop #12"). Its session is interrupted and the task goes back to `todo`.
 
 ### 4.5 Agent asks critical questions
-- **FR-16 (M)** The agent can post a question, set the task to `needs-input`, and pause.
-- **FR-17 (M)** I get notified on mobile and desktop and can answer from either. The agent picks up again with my answer.
-- **FR-18 (M)** **What counts as "critical"** (the agent must ask):
-  1. **Ambiguity that changes the result**: two reasonable readings would give materially different outcomes.
-  2. **Irreversible or outward-facing actions**: sending email or messages, deleting data, publishing, merging to main, spending money.
-  3. **Missing access or information**: credentials, a file, a decision only I can make.
-  4. **Scope or cost growth**: the work turns out much bigger than the task described.
-- **FR-19 (M)** **What is NOT critical** (the agent decides, writes the choice down, and keeps going): naming, formatting, picking between equivalent libraries or approaches, anything easy to undo.
-- **FR-20 (M)** Each question is **self-contained and easy to answer on a phone**: one question per message, enough context to answer without scrolling, and lettered options where possible ("A) … B) … C) other"), with the agent's recommended option marked.
-- **FR-21 (S)** Several questions found at the same moment are sent as one batch, not one after another.
-- **FR-22 (S)** If I don't answer within N hours, the task stays parked. The agent never times out into a guess.
+- **FR-16 (M)** The agent asks **only** when:
+  1. there is **ambiguity that changes the result**: two reasonable readings give materially different outcomes;
+  2. it is **missing access or information**: a credential, a file, or a decision only I can make;
+  3. the work turns out **much larger** than the task describes.
 
-### 4.6 Views
-- **FR-23 (M)** "My open tasks", sorted by priority.
-- **FR-24 (M)** "Needs my input": every agent question waiting on me. This is the most important view on mobile.
-- **FR-25 (S)** "Agent activity": what is queued, running and awaiting review.
-- **FR-26 (C)** A done/archive view with search.
+  Anything else it decides itself, notes the choice in the issue, and keeps going.
+- **FR-17 (M)** The agent asks in its own Claude session, so I get a notification in the Claude app on my phone or PC. It also mirrors the question to the issue and sets `needs-input`.
+- **FR-18 (M)** I answer in the session from either device. The agent mirrors my answer to the issue, removes `needs-input`, and carries on.
+- **FR-19 (M)** Each question is answerable on a phone: one question at a time, enough context to answer without scrolling, lettered options with a recommended one, e.g. `A) … B) … (recommended) C) other`.
+- **FR-20 (M)** While it waits, the agent never guesses or times out into a default. The task stays `needs-input`.
+- **FR-21 (S)** Questions that come up at the same moment are sent as one batch.
+
+### 4.6 Reminders and recurring tasks
+- **FR-22 (M)** **Due-date reminders.** Each morning the scheduler finds open tasks that are due today, overdue, or due tomorrow, and sends me one summary notification.
+- **FR-23 (M)** **Recurring tasks.** When a task with a `Repeat:` line is closed, the scheduler creates the next one with the same title, details, labels and assignee and the next due date. A recurring task assigned to Claude is queued automatically.
+- **FR-24 (S)** Snooze: "snooze #12 to Monday" changes the due date.
+
+### 4.7 Cost tracking (per task)
+- **FR-25 (M)** Each delegated task shows its cost in a `Cost:` section of the issue body. The agent updates it at every status change and at the end.
+- **FR-26 (M)** The cost record holds: the session link, active run time, and cost in USD (or tokens) where the platform reports it. Where it doesn't, the record shows run time and is marked `estimate`.
+- **FR-27 (S)** "Show cost" sums cost across tasks by week and by type.
+- **FR-28 (C)** Cost limits. Not enforced at the start, by my choice, but the fields exist so limits can be added later.
+
+### 4.8 Views (via front-desk Claude, or GitHub label filters)
+- **FR-29 (M)** **Needs my input**: label `needs-input`. The most important view.
+- **FR-30 (M)** **My open tasks**: open issues without `assignee:claude`, sorted by priority.
+- **FR-31 (M)** **Agent activity**: `assignee:claude` with `queued`, `in-progress` or `review`.
+- **FR-32 (C)** Dashboard: a private claude.ai Artifact showing these views (phase 3).
 
 ## 5. Non-functional requirements
 
-- **NFR-1 Cross-device:** Every MVP action works from the Claude app on phone and PC with no local install.
-- **NFR-2 Sync:** A change on one device shows on the other within about a minute.
-- **NFR-3 Single source of truth:** Tasks live in exactly one store, which also serves as the audit log.
-- **NFR-4 Security:**
-  - The agent works only inside the workspace/repo named on the task.
-  - Secrets never go in task details. The agent uses environment secrets, never the task text.
-  - Merging, sending, publishing and deleting always need my explicit approval (see FR-18.2).
-- **NFR-5 Privacy:** Tasks are private to me (private repo or private store).
-- **NFR-6 Durability:** Tasks survive app restarts and lost sessions. Nothing important lives only in one chat session.
-- **NFR-7 Low maintenance:** No server for me to run in v1. Use managed pieces: GitHub, Claude Code on the web, claude.ai.
+- **NFR-1 Cross-device:** Every MVP action works from the Claude app on phone and PC with nothing to install.
+- **NFR-2 Single source of truth:** GitHub Issues in this repo hold all tasks. Sessions are disposable; anything important goes into the issue.
+- **NFR-3 Privacy:** This repo stays **private**.
+- **NFR-4 Secrets:** Secrets never go in issues. The agent uses connectors and environment secrets.
+- **NFR-5 Auditability:** Because the agent acts alone (FR-12), every outward action is logged on its issue.
+- **NFR-6 Low maintenance:** No servers. The system uses only GitHub, Claude Code cloud sessions, and Claude routines.
 
-## 6. Architecture options
+## 6. Architecture
 
-| | A. GitHub Issues + Claude Code (recommended) | B. claude.ai Artifact app with a shared database | C. Custom web app + Claude API |
-|---|---|---|---|
-| Task store | Issues in `task-master` (labels hold priority and status) | The Artifact's built-in database | Own database (e.g. Supabase) |
-| Add/edit on mobile | Ask Claude in the Claude app, or use the GitHub mobile app | Open the Artifact page in the Claude app | Own PWA |
-| Delegation | Label `assignee:claude` or comment `@claude`; a Claude Code cloud session or GitHub Action picks it up | Needs a bridge to start an agent | Build my own agent loop |
-| Agent questions | Issue comment + `needs-input` label; I reply in a comment | Custom UI | Custom UI |
-| Notifications | GitHub and Claude app notifications, already there | Limited | Build my own |
-| Effort | **Low** | Medium | High |
-| Weakness | The UI is GitHub's, not a custom one | Weak agent integration | Lots to build and run |
+```
+ Me (Claude app: phone / PC)
+   │  "add …", "delegate #12", answers
+   ▼
+ Front-desk Claude session ──creates/edits──► GitHub Issues (task-master)
+   │                                            ▲          ▲
+   └──starts one session per task──► Task agent ┘          │
+                                     (asks me in-session,   │
+                                      mirrors to issue)     │
+ Daily scheduler routine ── reminders / recurring / pick up queued
+```
 
-**Recommendation:** start with **A**. Issues already give me storage, history, comments (the question-and-answer channel), labels (priority and status) and notifications on every device. Claude Code on the web can already read and write issues in this repo. Later, add **B** as a nicer front end in phase 3: a private claude.ai Artifact dashboard that reads the same issues.
-
-### 6.1 How option A maps to the requirements
-
-| Requirement | Implementation |
-|-------------|----------------|
-| Task | GitHub Issue |
-| Priority | Labels `P0`–`P3` |
-| Status | Open/closed plus labels `queued`, `in-progress`, `needs-input`, `review` |
-| Assignee | Label `assignee:claude` (absent means me) |
-| Details | Issue body, using a template with Context, Done-when and Allowed-workspace sections |
-| Agent question | Issue comment in the FR-20 format, plus the `needs-input` label |
-| Answer | My reply comment, which triggers the agent to resume |
-| Result | Final comment with a summary and links, plus the `review` label |
-| Agent rules | `CLAUDE.md` in this repo sets the FR-18/19/20 behaviour for every agent run |
+- **The rules live in the repo.** `CLAUDE.md` defines the front-desk and task-agent behaviour, the question format, and the cost reporting. Every session reads it automatically.
+- **Connectors:** delegated `type:action` tasks need Gmail, Calendar and Drive. *Phase 0 must check that sessions started for a task actually have access to these connectors.*
 
 ## 7. Example flows
 
-**Capture on mobile**
-> Me (Claude app): "Add task: compare 3 home insurance quotes, P1, due Oct 20, delegate to Claude."
-> Claude: creates issue #12 with labels `P1` and `assignee:claude`, then confirms.
+**Capture and delegate on mobile**
+> Me: "Add task: find 3 home insurance quotes, P1, due Oct 20, delegate."
+> Front desk: creates #12 (`P1`, `type:research`, `assignee:claude`, `queued`), starts a session, and replies "Started: <session link>".
 
-**Agent asks a critical question**
-> Agent on #12: "❓ **Needs input:** Which coverage should I compare?
-> A) Building only  B) Building + contents (recommended, matches your current policy)  C) Other.
-> Reply with a letter."
-> Label → `needs-input`; I get a phone notification and reply "B"; the agent carries on.
+**Critical question**
+> Agent (notification on my phone): "❓ #12: Which coverage should I compare? A) Building only B) Building + contents (recommended, matches current policy) C) Other."
+> I reply "B". The agent mirrors the Q&A to #12 and continues.
 
-**Review**
-> Agent: posts a comparison table and a recommendation, sets `review`. I close the issue (done) or comment "also include X" (back to in-progress).
+**Result**
+> Agent: comments with a comparison table, sets `review`, and records `Cost: 18 min · $0.42 · <session link>`. I close #12.
+
+**Recurring**
+> #20 "Pay rent", `Repeat: monthly:1`. I close it on the 2nd and the scheduler creates #31 due on the 1st of next month.
 
 ## 8. Phased roadmap
 
 | Phase | Scope | Exit criteria |
 |-------|-------|---------------|
-| **0. Setup** | Labels, issue template, `CLAUDE.md` with the agent's question rules | I can add a labelled task from my phone through Claude |
-| **1. MVP** | FR-1, 4, 5, 7, 10–13, 16–20, 23, 24 | One real task delegated end to end, including one question answered from my phone |
-| **2. Polish** | Plain-language capture, "focus today", stop/cancel, limits, batched questions | Used every day for 2 weeks |
-| **3. Dashboard** | claude.ai Artifact showing the Needs-input, Open and Agent-activity views | Can triage everything from one screen on my phone |
-| **4. Extras** | Voice, attachments, recurring tasks, calendar/email capture | Nice to have |
+| **0. Setup** | Labels, issue template, `CLAUDE.md` rules. Check that sessions started per task get the connectors | I add a labelled task from my phone through Claude |
+| **1. MVP** | FR-1, 2, 4, 5, 7, 9–14, 16–20, 22, 23, 25, 26, 29–31. Scheduler routine | One task of each type delegated end to end, with one question answered on my phone |
+| **2. Polish** | Focus-today, stop/snooze, batched questions, cost rollup, checklists | Used every day for 2 weeks |
+| **3. Dashboard** | claude.ai Artifact showing the views | Triage everything from one screen |
+| **4. Extras** | Voice, email capture, cost limits | Nice to have |
 
-## 9. Open questions for me (the owner)
+## 9. Decisions log
 
-1. **What kinds of tasks will I delegate?** Coding in my repos, research and writing, or actions in my accounts (email, calendar)? This decides what access the agent needs and how strict approvals must be.
-2. **Agent runtime:** start a Claude Code cloud session per task, or use the Claude GitHub Action triggered by labels or mentions? The first is more interactive; the second is more automatic.
-3. **Is the GitHub UI acceptable** as the phase 1 interface, alongside talking to Claude, or do I need a custom screen from day one?
-4. **Notifications:** are GitHub and Claude app notifications enough, or do I want push, email or another channel for `needs-input`?
-5. **Cost limits:** maximum agent tasks per day or week, and maximum run time per task.
-6. **Approval policy:** besides FR-18.2, are there areas where the agent may act alone (e.g. open PRs freely, never merge)?
-7. **Do I need recurring tasks or due-date reminders** in the MVP?
+| # | Question | Decision |
+|---|----------|----------|
+| 1 | Task types to delegate | **All**: code, research, writing, account actions |
+| 2 | Agent runtime | **One Claude session per task** |
+| 3 | GitHub UI acceptable for phase 1 | **Yes** |
+| 4 | Notifications | **Claude app and GitHub notifications are enough** |
+| 5 | Cost | **No limits at the start**, but **cost is tracked and shown per task** |
+| 6 | Autonomy | **The agent acts on its own**, including outward actions. It asks only for ambiguity, missing information or scope growth, and logs every action |
+| 7 | Recurring tasks and reminders | **Yes, in the MVP** |
+
+## 10. Known risks
+
+- **Cost visibility:** a session may not be able to read its own exact cost. FR-26 falls back to run time marked `estimate`.
+- **Connector access in task sessions:** must be checked in phase 0. If it fails, `type:action` tasks run from the front-desk session instead.
+- **Full autonomy:** a misread task can lead to a real outward action. Mitigated by the critical-question rules (FR-16), the action log (NFR-5), and the option to add an "always ask before" list in `CLAUDE.md` later.
