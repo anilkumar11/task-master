@@ -72,9 +72,10 @@ The owner mostly uses the app. In chat:
    - Set `status: "review"`. **Never set `done`.**
 8. A message starting `revise:` means the owner sent the task back. Continue the work in the same way.
 
-## Role: Scheduler (daily routine)
+## Role: Scheduler (routines)
 
-1. **Reminders:** collect tasks that aren't done and are overdue, due today, or due tomorrow. End the run with one short, phone-friendly summary; that final message is the owner's push notification.
-2. **Recurring:** the app creates the next copy when a repeating task is marked done. Only fill gaps: a task marked done in the last 24 hours with `repeat` set and no newer open task with the same title.
-3. **Pick up:** for each `assignee: "claude"` + `status: "queued"` task with no `session`, start a task session as the Front desk does.
-4. **Exact cost:** for each task with a `session` whose `cost.estimate` isn't `false`, read the session's `result` events (`list_events` with `kinds: ["result"]`). Sum their `total_cost_usd` and `duration_ms`, then write `cost: {usd, minutes, estimate: false}`.
+Two Claude routines run with their full instructions in their own prompts, because scheduled runs can't read this repo:
+- **Task Master hourly pickup** (every hour, no notification): starts queued Claude tasks in auto mode, fills gaps in repeating tasks, and writes exact costs from each finished session's `result` events (`total_cost_usd`, `duration_ms`).
+- **Task Master daily reminder** (07:52 IST, push notification): read-only summary of what's waiting on the owner, overdue, due today and due tomorrow.
+
+If you change the task schema or these behaviours, update the routine prompts too.
