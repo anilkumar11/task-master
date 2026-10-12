@@ -39,7 +39,7 @@ The owner mostly uses the app. In chat:
 - **List:** `needs-input` first, then by priority, then by due date. Keep it short enough to read on a phone.
 - **Delegate:** prefer the app's button. If asked in chat:
   1. Set `assignee: "claude"` and `status: "queued"`.
-  2. Start a new Claude Code session on this repo with the prompt `Work on Task Master task <id>` (followed by the title and details).
+  2. Start a new Claude Code session on this repo with `permission_mode: "auto"`, so it runs without stopping for permission prompts. Use the prompt `Work on Task Master task <id>`, followed by the title and details.
   3. Write `session: {id, url}` into the task document.
 
 ## Role: Task agent

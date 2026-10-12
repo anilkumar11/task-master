@@ -472,7 +472,7 @@ async function startSession(t) {
   const m = await getMcp();
   if (!m) { flash = { text: "Connectors aren't available in this view. Open the page in the Claude app." }; render(); return; }
   try {
-    const res = await m.callTool(CCR, "create_session", { title: `Task: ${t.title}`.slice(0, 200), source_url: REPO_URL, prompt: agentPrompt(t), tags: ["task-master"] });
+    const res = await m.callTool(CCR, "create_session", { title: `Task: ${t.title}`.slice(0, 200), source_url: REPO_URL, prompt: agentPrompt(t), tags: ["task-master"], permission_mode: "auto" });
     const p = res.payload || {};
     const id = (p.ccr && p.ccr.id) || p.id || p.session_id;
     if (!id) throw { code: "upstream_error" };
