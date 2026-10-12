@@ -1,6 +1,8 @@
-# Task Master: Requirements (v0.2)
+# Task Master: Requirements (v0.3)
 
-> Status: **Decisions made, ready to build phase 0.** See section 9 for what changed since v0.1.
+> Status: **The app UI is built** (decision 8).
+>
+> **v0.3 change:** tasks now live in the Task Master app, a private claude.ai artifact (`app/index.html`), not in GitHub Issues. The fields and statuses below still apply; they are document fields instead of labels. `CLAUDE.md` holds the exact schema. Where sections 3–8 mention issues or labels, read "task document".
 
 ## 1. Vision
 
@@ -110,7 +112,7 @@ Priority key: **M** = MVP, **S** = should, **C** = later.
 ## 5. Non-functional requirements
 
 - **NFR-1 Cross-device:** Every MVP action works from the Claude app on phone and PC with nothing to install.
-- **NFR-2 Single source of truth:** GitHub Issues in this repo hold all tasks. Sessions are disposable; anything important goes into the issue.
+- **NFR-2 Single source of truth:** the Task Master app's database holds all tasks. Sessions are disposable; anything important goes into the task document.
 - **NFR-3 Privacy:** This repo stays **private**.
 - **NFR-4 Secrets:** Secrets never go in issues. The agent uses connectors and environment secrets.
 - **NFR-5 Auditability:** Because the agent acts alone (FR-12), every outward action is logged on its issue.
@@ -119,16 +121,18 @@ Priority key: **M** = MVP, **S** = should, **C** = later.
 ## 6. Architecture
 
 ```
- Me (Claude app: phone / PC)
-   │  "add …", "delegate #12", answers
-   ▼
- Front-desk Claude session ──creates/edits──► GitHub Issues (task-master)
-   │                                            ▲          ▲
-   └──starts one session per task──► Task agent ┘          │
-                                     (asks me in-session,   │
-                                      mirrors to issue)     │
- Daily scheduler routine ── reminders / recurring / pick up queued
+ Me ──► Task Master app (claude.ai artifact, phone + PC)
+          │  add / edit / prioritize / answer / review
+          │  stores tasks in its private database
+          │  "Delegate" ──(Claude Code Remote connector)──► new Claude session per task
+          ▼                                                    │
+     tasks database ◄──── ArtifactData reads/writes ───────────┘ Task agent
+          ▲                                                      (also asks me in-session)
+          └──── Daily scheduler routine: reminders / pick up queued
 ```
+
+- **App:** `app/index.html`, published at https://claude.ai/artifact/9XBCgHprdE8jEVJRrBLaS3. It is readable only by the owner, through a database access rule.
+- **Answering questions:** the app shows the agent's question with option buttons. Answering sends the reply to the agent's session (`send_message`) and records it on the task.
 
 - **The rules live in the repo.** `CLAUDE.md` defines the front-desk and task-agent behaviour, the question format, and the cost reporting. Every session reads it automatically.
 - **Connectors:** delegated `type:action` tasks need Gmail, Calendar and Drive. *Phase 0 must check that sessions started for a task actually have access to these connectors.*
@@ -170,6 +174,7 @@ Priority key: **M** = MVP, **S** = should, **C** = later.
 | 5 | Cost | **No limits at the start**, but **cost is tracked and shown per task** |
 | 6 | Autonomy | **The agent acts on its own**, including outward actions. It asks only for ambiguity, missing information or scope growth, and logs every action |
 | 7 | Recurring tasks and reminders | **Yes, in the MVP** |
+| 8 | Interface | **A real app UI** for tasks, details and priority, rather than GitHub. Built as a private claude.ai artifact, which also becomes the task store (no GitHub connector was available to the page) |
 
 ## 10. Known risks
 

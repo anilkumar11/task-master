@@ -1,0 +1,592 @@
+<title>Task Master</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one column of task rows on phones; list + detail panel side by side from 900px. */
+:root {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --sunk: #eceef2;
+  --fg: #18202b;
+  --muted: #5d6675;
+  --line: #dde1e7;
+  --accent: #2b5fd9;
+  --accent-fg: #ffffff;
+  --p0: #c62f2f;
+  --p1: #c9681a;
+  --p2: #2b5fd9;
+  --p3: #7a8391;
+  --ask: #a35a00;
+  --ask-bg: #fff3df;
+  --ok: #1d7a4a;
+  --ok-bg: #e3f4ea;
+  --work: #5a3fc0;
+  --work-bg: #ece8fb;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Instrument Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #10141a; --surface: #171c24; --sunk: #1f2530; --fg: #e7ebf1; --muted: #9aa3b1; --line: #2a313d;
+    --accent: #6d97ff; --accent-fg: #0d1320;
+    --p0: #ff6b6b; --p1: #f0954a; --p2: #6d97ff; --p3: #8d96a5;
+    --ask: #ffb84d; --ask-bg: #33270f; --ok: #5fd197; --ok-bg: #143223; --work: #a891ff; --work-bg: #251f40;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #10141a; --surface: #171c24; --sunk: #1f2530; --fg: #e7ebf1; --muted: #9aa3b1; --line: #2a313d;
+  --accent: #6d97ff; --accent-fg: #0d1320;
+  --p0: #ff6b6b; --p1: #f0954a; --p2: #6d97ff; --p3: #8d96a5;
+  --ask: #ffb84d; --ask-bg: #33270f; --ok: #5fd197; --ok-bg: #143223; --work: #a891ff; --work-bg: #251f40;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 16px; padding-block: 16px 40px; display: flex; flex-direction: column; gap: 14px; }
+
+header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: 1.6rem; letter-spacing: -0.01em; margin: 0; }
+.summary { color: var(--muted); font-size: 0.875rem; font-variant-numeric: tabular-nums; }
+.summary b { color: var(--ask); font-weight: 600; }
+
+.banner { padding: 10px 12px; border-radius: var(--radius); background: var(--sunk); color: var(--fg); font-size: 0.9rem; }
+.banner.warn { background: var(--ask-bg); color: var(--ask); }
+
+#quick { display: flex; gap: 8px; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px; }
+#quick input { flex: 1 1 220px; min-width: 0; border: 0; background: transparent; padding: 8px; font-size: 1rem; }
+#quick input:focus { outline: none; }
+#quick:focus-within { border-color: var(--accent); }
+#quick select { border: 1px solid var(--line); background: var(--sunk); border-radius: 8px; padding: 6px 8px; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 7px 12px; font-weight: 500; }
+.btn:hover { background: var(--sunk); }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.btn.primary:hover { filter: brightness(1.07); }
+.btn.danger { color: var(--p0); }
+.btn:disabled { opacity: 0.55; cursor: default; }
+.hint { color: var(--muted); font-size: 0.8rem; margin-top: -6px; }
+.hint code { font-family: var(--font-mono); font-size: 0.75rem; background: var(--sunk); padding: 1px 4px; border-radius: 4px; }
+
+nav.tabs { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--line); }
+nav.tabs button { border: 0; background: none; padding: 8px 12px; color: var(--muted); font-weight: 500; border-bottom: 2px solid transparent; white-space: nowrap; }
+nav.tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--fg); }
+nav.tabs .count { font-family: var(--font-mono); font-size: 0.75rem; margin-left: 4px; }
+nav.tabs .count.hot { color: var(--ask); font-weight: 600; }
+
+.layout { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start; }
+@media (min-width: 900px) { .layout { grid-template-columns: minmax(0, 1fr) minmax(0, 440px); } }
+
+#list { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.row { display: grid; grid-template-columns: 6px 1fr auto; gap: 12px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px 10px 0; text-align: left; width: 100%; overflow: hidden; }
+.row:hover { border-color: var(--muted); }
+.row[aria-current="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.row .stripe { align-self: stretch; margin-block: -10px; }
+.row .main { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.row .title { font-weight: 500; overflow-wrap: anywhere; }
+.row.done .title { color: var(--muted); text-decoration: line-through; }
+.row .meta { display: flex; gap: 8px; flex-wrap: wrap; color: var(--muted); font-size: 0.8rem; }
+.row .meta .overdue { color: var(--p0); font-weight: 500; }
+.row .side { display: flex; gap: 6px; align-items: center; }
+.stripe.P0 { background: var(--p0); } .stripe.P1 { background: var(--p1); } .stripe.P2 { background: var(--p2); } .stripe.P3 { background: var(--p3); }
+
+.pri { font-family: var(--font-mono); font-size: 0.72rem; font-weight: 500; padding: 1px 6px; border-radius: 5px; border: 1px solid currentColor; }
+.pri.P0 { color: var(--p0); } .pri.P1 { color: var(--p1); } .pri.P2 { color: var(--p2); } .pri.P3 { color: var(--p3); }
+.pill { font-size: 0.75rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--sunk); color: var(--muted); white-space: nowrap; }
+.pill.needs-input { background: var(--ask-bg); color: var(--ask); }
+.pill.in-progress, .pill.queued { background: var(--work-bg); color: var(--work); }
+.pill.review { background: var(--ok-bg); color: var(--ok); }
+.who { font-family: var(--font-mono); font-size: 0.72rem; color: var(--work); }
+
+.empty { padding: 28px 16px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: var(--radius); }
+.empty strong { display: block; color: var(--fg); font-weight: 600; margin-bottom: 4px; }
+
+#detail { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+@media (min-width: 900px) { #detail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); max-height: calc(100vh - 24px); overflow-y: auto; } }
+@media (max-width: 899px) {
+  #detail { position: fixed; inset: 0; z-index: 10; border-radius: 0; border: 0; overflow-y: auto; padding-top: calc(env(safe-area-inset-top, 0px) + 12px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 24px); }
+  #detail .back { display: inline-flex; }
+}
+#detail .back { display: none; align-self: flex-start; }
+.d-title { width: 100%; border: 0; border-bottom: 1px solid transparent; background: transparent; font-family: var(--font-display); font-weight: 600; font-size: 1.3rem; padding: 2px 0; text-wrap: balance; }
+.d-title:hover, .d-title:focus { border-bottom-color: var(--line); outline: none; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field > span { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.field input, .field select, .field textarea { border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 8px 10px; width: 100%; min-width: 0; }
+.field textarea { min-height: 140px; resize: vertical; font-family: var(--font-body); }
+.seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { flex: 1; border: 0; background: var(--bg); padding: 7px 0; font-family: var(--font-mono); font-size: 0.8rem; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"].P0 { background: var(--p0); color: var(--surface); }
+.seg button[aria-pressed="true"].P1 { background: var(--p1); color: var(--surface); }
+.seg button[aria-pressed="true"].P2 { background: var(--p2); color: var(--surface); }
+.seg button[aria-pressed="true"].P3 { background: var(--p3); color: var(--surface); }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.box { border-radius: var(--radius); padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.box h3 { margin: 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; }
+.box.ask { background: var(--ask-bg); }
+.box.ask h3 { color: var(--ask); }
+.box.agent { background: var(--work-bg); }
+.box.agent h3 { color: var(--work); }
+.box.review { background: var(--ok-bg); }
+.box.review h3 { color: var(--ok); }
+.box p { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.opts { display: flex; flex-direction: column; gap: 6px; }
+.opt { text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 9px 10px; }
+.opt:hover { border-color: var(--ask); }
+.opt .rec { font-size: 0.72rem; font-weight: 600; color: var(--ask); margin-left: 6px; }
+.inline { display: flex; gap: 6px; }
+.inline input { flex: 1; min-width: 0; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 8px 10px; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 0.875rem; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; font-family: var(--font-mono); font-size: 0.8rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.kv a { color: var(--accent); }
+.confirm { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.msg { font-size: 0.85rem; color: var(--p0); }
+.msg.ok { color: var(--ok); }
+
+.history { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.history li { display: grid; grid-template-columns: 54px 1fr; gap: 8px; font-size: 0.85rem; }
+.history time { font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); padding-top: 2px; }
+.history .by { font-weight: 600; margin-right: 4px; }
+.history .by.claude { color: var(--work); }
+.history .txt { overflow-wrap: anywhere; white-space: pre-wrap; }
+details summary { cursor: pointer; color: var(--muted); font-size: 0.85rem; }
+@media (prefers-reduced-motion: no-preference) { .row { transition: border-color 0.12s; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Task Master</h1>
+    <div class="summary" id="summary">Loading tasks…</div>
+  </header>
+
+  <div class="banner warn" id="banner" hidden></div>
+
+  <form id="quick" autocomplete="off">
+    <input id="q-title" placeholder="Add a task… e.g. Renew passport p1 tomorrow" aria-label="New task title">
+    <select id="q-pri" aria-label="Priority">
+      <option value="P0">P0 · Urgent</option>
+      <option value="P1">P1 · This week</option>
+      <option value="P2" selected>P2 · Normal</option>
+      <option value="P3">P3 · Someday</option>
+    </select>
+    <button class="btn primary" type="submit">Add</button>
+  </form>
+  <div class="hint">Shortcuts in the title: <code>p0</code>–<code>p3</code> sets priority, <code>today</code> or <code>tomorrow</code> sets the due date.</div>
+
+  <nav class="tabs" role="tablist" id="tabs">
+    <button role="tab" data-view="needs" id="tab-needs">Needs you<span class="count" id="c-needs"></span></button>
+    <button role="tab" data-view="open" id="tab-open">Open<span class="count" id="c-open"></span></button>
+    <button role="tab" data-view="claude" id="tab-claude">With Claude<span class="count" id="c-claude"></span></button>
+    <button role="tab" data-view="done" id="tab-done">Done<span class="count" id="c-done"></span></button>
+  </nav>
+
+  <div class="layout">
+    <div id="list" aria-live="polite"></div>
+    <aside id="detail" hidden></aside>
+  </div>
+</div>
+
+<script>
+// Set after the first publish: the agent uses it to find this task store.
+const ARTIFACT_URL = "https://claude.ai/artifact/9XBCgHprdE8jEVJRrBLaS3";
+const REPO_URL = "https://github.com/anilkumar11/task-master";
+const CCR = "Claude Code Remote";
+const PRI = ["P0", "P1", "P2", "P3"];
+const PRI_LABEL = { P0: "Urgent", P1: "This week", P2: "Normal", P3: "Someday" };
+const STATUS_LABEL = { "todo": "To do", "queued": "Queued", "in-progress": "Working", "needs-input": "Needs you", "review": "Review", "done": "Done" };
+const TYPES = { "": "Not set", code: "Code", research: "Research", writing: "Writing", action: "Account action" };
+const REPEAT = { "": "Doesn't repeat", daily: "Daily", weekly: "Weekly", monthly: "Monthly" };
+
+let db = null, mcp = null, tasks = [], loaded = false;
+let view = "open", selectedId = null, pendingConfirm = null, flash = null;
+const chains = {};
+
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const nowIso = () => new Date().toISOString();
+const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const todayStr = () => ymd(new Date());
+const addDays = (s, n) => { const d = s ? new Date(s + "T00:00:00") : new Date(); d.setDate(d.getDate() + n); return ymd(d); };
+
+function dueLabel(due, status) {
+  if (!due) return null;
+  const t = todayStr();
+  const fmt = new Date(due + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  if (status !== "done" && due < t) return { text: `Overdue · ${fmt}`, overdue: true };
+  if (due === t) return { text: "Due today", overdue: false };
+  if (due === addDays(t, 1)) return { text: "Due tomorrow", overdue: false };
+  return { text: `Due ${fmt}`, overdue: false };
+}
+function timeShort(iso) {
+  const d = new Date(iso);
+  if (isNaN(d)) return "";
+  return ymd(d) === todayStr() ? d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }) : d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+// ---------- store ----------
+function save(id, patch) {
+  const run = () => db.doc("tasks/" + id).update({ ...patch, updatedAt: nowIso() });
+  chains[id] = (chains[id] || Promise.resolve()).then(run).catch((e) => showBanner(storeError(e)));
+  return chains[id];
+}
+function withHistory(t, entry) {
+  return [...(Array.isArray(t.history) ? t.history : []), { at: nowIso(), by: "me", ...entry }].slice(-100);
+}
+function storeError(e) {
+  if (e && e.code === "quota_exceeded") return "Your task store is full. Delete some old done tasks to add new ones.";
+  if (e && e.code === "invalid_argument") return "That change couldn't be saved. Only the owner of this page can edit tasks.";
+  return "A change couldn't be saved. Check your connection and try again.";
+}
+function showBanner(text) { const b = $("#banner"); b.textContent = text; b.hidden = !text; }
+
+async function addTask(raw, pri) {
+  let title = raw.trim(), priority = pri, due = "";
+  const pm = title.match(/(^|\s)p([0-3])(?=\s|$)/i);
+  if (pm) { priority = "P" + pm[2]; title = title.replace(pm[0], " "); }
+  if (/(^|\s)today(?=\s|$)/i.test(title)) { due = todayStr(); title = title.replace(/(^|\s)today(?=\s|$)/i, " "); }
+  else if (/(^|\s)tomorrow(?=\s|$)/i.test(title)) { due = addDays(todayStr(), 1); title = title.replace(/(^|\s)tomorrow(?=\s|$)/i, " "); }
+  title = title.replace(/\s+/g, " ").trim();
+  if (!title) return;
+  const ref = db.collection("tasks").doc();
+  const t = blankTask({ title, priority, due });
+  try { await ref.set(t); selectedId = ref.id; view = "open"; render(); }
+  catch (e) { showBanner(storeError(e)); }
+}
+function blankTask(over) {
+  const at = nowIso();
+  return { title: "", details: "", priority: "P2", status: "todo", assignee: "me", type: "", due: "", repeat: "",
+    session: null, question: null, cost: null, history: [{ at, by: "me", kind: "status", text: "Created" }], createdAt: at, updatedAt: at, doneAt: null, ...over };
+}
+
+// ---------- views ----------
+const rank = (t) => (t.status === "needs-input" ? 0 : 1);
+function sortOpen(a, b) {
+  return rank(a) - rank(b) || PRI.indexOf(a.priority) - PRI.indexOf(b.priority) ||
+    (a.due || "9999") .localeCompare(b.due || "9999") || String(a.createdAt).localeCompare(String(b.createdAt));
+}
+function inView(v) {
+  if (v === "needs") return tasks.filter((t) => t.status === "needs-input").sort(sortOpen);
+  if (v === "claude") return tasks.filter((t) => t.assignee === "claude" && t.status !== "done").sort(sortOpen);
+  if (v === "done") return tasks.filter((t) => t.status === "done").sort((a, b) => String(b.doneAt).localeCompare(String(a.doneAt))).slice(0, 100);
+  return tasks.filter((t) => t.status !== "done").sort(sortOpen);
+}
+
+function render() {
+  const counts = { needs: inView("needs").length, open: inView("open").length, claude: inView("claude").length, done: tasks.filter((t) => t.status === "done").length };
+  for (const k of Object.keys(counts)) {
+    const el = $("#c-" + k); el.textContent = counts[k] ? counts[k] : ""; el.classList.toggle("hot", k === "needs" && counts[k] > 0);
+    $("#tab-" + k).setAttribute("aria-selected", String(view === k));
+  }
+  const overdue = tasks.filter((t) => t.status !== "done" && t.due && t.due < todayStr()).length;
+  $("#summary").innerHTML = !loaded ? "Loading tasks…" :
+    `${counts.open} open` + (counts.needs ? ` · <b>${counts.needs} waiting on you</b>` : "") + (overdue ? ` · ${overdue} overdue` : "") + (counts.claude ? ` · ${counts.claude} with Claude` : "");
+  renderList();
+  renderDetail();
+}
+
+function renderList() {
+  const list = $("#list");
+  const items = inView(view);
+  if (!loaded) { list.innerHTML = `<div class="empty"><strong>Loading your tasks</strong>They'll appear here in a moment.</div>`; return; }
+  if (!items.length) {
+    const msg = {
+      needs: ["Nothing needs you right now", "When Claude has a question about a delegated task, it shows up here."],
+      open: ["No open tasks", "Type a task in the box above and press Add."],
+      claude: ["Nothing delegated yet", "Open a task and press Delegate to Claude to hand it off."],
+      done: ["Nothing done yet", "Finished tasks are listed here."],
+    }[view];
+    list.innerHTML = `<div class="empty"><strong>${msg[0]}</strong>${msg[1]}</div>`;
+    return;
+  }
+  list.innerHTML = items.map((t) => {
+    const due = dueLabel(t.due, t.status);
+    return `<button class="row${t.status === "done" ? " done" : ""}" data-id="${esc(t.id)}" aria-current="${t.id === selectedId}">
+      <span class="stripe ${esc(t.priority)}"></span>
+      <span class="main">
+        <span class="title">${esc(t.title)}</span>
+        <span class="meta">
+          <span class="pri ${esc(t.priority)}">${esc(t.priority)}</span>
+          ${due ? `<span class="${due.overdue ? "overdue" : ""}">${esc(due.text)}</span>` : ""}
+          ${t.repeat ? `<span>Repeats ${esc(t.repeat)}</span>` : ""}
+          ${t.assignee === "claude" ? `<span class="who">Claude</span>` : ""}
+        </span>
+      </span>
+      <span class="side">${t.status !== "todo" ? `<span class="pill ${esc(t.status)}">${esc(STATUS_LABEL[t.status] || t.status)}</span>` : ""}</span>
+    </button>`;
+  }).join("");
+}
+
+function renderDetail() {
+  const pane = $("#detail");
+  const t = tasks.find((x) => x.id === selectedId);
+  if (!t) { pane.hidden = true; pane.innerHTML = ""; return; }
+  pane.hidden = false;
+  const focusId = document.activeElement && pane.contains(document.activeElement) ? document.activeElement.id : null;
+  const caret = focusId && document.activeElement.selectionStart != null ? [document.activeElement.selectionStart, document.activeElement.selectionEnd] : null;
+
+  const delegated = t.assignee === "claude";
+  const sess = t.session && t.session.url;
+  const q = t.status === "needs-input" && t.question;
+  const cost = t.cost || {};
+  const hist = (Array.isArray(t.history) ? t.history : []).slice().reverse();
+
+  pane.innerHTML = `
+    <button class="btn back" data-act="close">← All tasks</button>
+    <input class="d-title" id="f-title" value="${esc(t.title)}" aria-label="Task title">
+    <div class="actions">
+      <span class="pill ${esc(t.status)}">${esc(STATUS_LABEL[t.status] || t.status)}</span>
+      ${delegated ? `<span class="who">Delegated to Claude</span>` : ""}
+    </div>
+
+    ${q ? `<div class="box ask">
+      <h3>Claude needs your answer</h3>
+      <p>${esc(q.text)}</p>
+      ${Array.isArray(q.options) && q.options.length ? `<div class="opts">${q.options.map((o, i) =>
+        `<button class="opt" data-act="answer" data-answer="${esc(o)}">${esc(o)}${q.recommended === i ? `<span class="rec">Recommended</span>` : ""}</button>`).join("")}</div>` : ""}
+      <div class="inline"><input id="f-answer" placeholder="Or type your answer"><button class="btn primary" data-act="answer-text">Send</button></div>
+    </div>` : ""}
+
+    ${t.status === "review" ? `<div class="box review">
+      <h3>Ready for your review</h3>
+      <p>Claude has finished. Check the result in the history below${sess ? " or in its session" : ""}.</p>
+      <div class="actions"><button class="btn primary" data-act="done">Accept and mark done</button></div>
+      <div class="inline"><input id="f-revise" placeholder="What should Claude change?"><button class="btn" data-act="revise">Send back</button></div>
+    </div>` : ""}
+
+    <div class="field"><span>Priority</span>
+      <div class="seg">${PRI.map((p) => `<button class="${p}" data-act="pri" data-pri="${p}" aria-pressed="${t.priority === p}" title="${PRI_LABEL[p]}">${p}</button>`).join("")}</div>
+    </div>
+    <div class="grid2">
+      <label class="field"><span>Due</span><input type="date" id="f-due" value="${esc(t.due)}"></label>
+      <label class="field"><span>Repeat</span><select id="f-repeat">${Object.entries(REPEAT).map(([k, v]) => `<option value="${k}"${t.repeat === k ? " selected" : ""}>${v}</option>`).join("")}</select></label>
+      <label class="field"><span>Type</span><select id="f-type">${Object.entries(TYPES).map(([k, v]) => `<option value="${k}"${t.type === k ? " selected" : ""}>${v}</option>`).join("")}</select></label>
+    </div>
+    <label class="field"><span>Details</span><textarea id="f-details" placeholder="Context, links, and what done looks like. Claude reads this when you delegate.">${esc(t.details)}</textarea></label>
+
+    ${delegated ? `<div class="box agent">
+      <h3>Claude agent</h3>
+      <dl class="kv">
+        <dt>Session</dt><dd>${sess ? `<a href="${esc(t.session.url)}" target="_blank" rel="noopener">Open session</a>` : "Not started yet"}</dd>
+        <dt>Run time</dt><dd>${cost.minutes != null ? esc(cost.minutes) + " min" : "—"}</dd>
+        <dt>Cost</dt><dd>${cost.usd != null ? "$" + Number(cost.usd).toFixed(2) : "—"}${cost.estimate ? " (estimate)" : ""}</dd>
+      </dl>
+      ${sess && t.status !== "done" && t.status !== "review" ? `<div class="actions"><button class="btn danger" data-act="stop">Stop Claude</button></div>` : ""}
+    </div>` : ""}
+
+    ${pendingConfirm === "delegate" ? `<div class="confirm">
+      <div>Start a new Claude session for this task? Claude works on its own and messages you only if it needs a decision.</div>
+      <div class="actions"><button class="btn primary" data-act="delegate-go">Start session</button><button class="btn" data-act="cancel">Cancel</button></div>
+    </div>` : ""}
+    ${pendingConfirm === "delete" ? `<div class="confirm">
+      <div>Delete this task for good?</div>
+      <div class="actions"><button class="btn danger" data-act="delete-go">Delete</button><button class="btn" data-act="cancel">Cancel</button></div>
+    </div>` : ""}
+    ${flash ? `<div class="msg${flash.ok ? " ok" : ""}">${esc(flash.text)}</div>` : ""}
+
+    <div class="actions">
+      ${t.status !== "done" && !delegated ? `<button class="btn primary" data-act="delegate">Delegate to Claude</button>` : ""}
+      ${t.status !== "done" ? `<button class="btn" data-act="done">Mark done</button>` : `<button class="btn" data-act="reopen">Reopen</button>`}
+      <button class="btn danger" data-act="delete">Delete</button>
+    </div>
+
+    <details${hist.length <= 6 ? " open" : ""}><summary>History (${hist.length})</summary>
+      <ul class="history">${hist.map((h) => `<li><time>${esc(timeShort(h.at))}</time><div><span class="by ${h.by === "claude" ? "claude" : ""}">${h.by === "claude" ? "Claude" : "You"}</span><span class="txt">${esc(h.text)}</span></div></li>`).join("")}</ul>
+    </details>`;
+
+  if (focusId) {
+    const el = document.getElementById(focusId);
+    if (el) { el.focus(); if (caret && el.setSelectionRange) try { el.setSelectionRange(caret[0], caret[1]); } catch (e) {} }
+  }
+}
+
+// ---------- actions ----------
+const debounced = {};
+function saveField(id, field, value) {
+  clearTimeout(debounced[id + field]);
+  debounced[id + field] = setTimeout(() => save(id, { [field]: value }), 500);
+}
+
+async function getMcp() {
+  if (!mcp) mcp = await claude.use("mcp");
+  return mcp;
+}
+function mcpMessage(e) {
+  switch (e && e.code) {
+    case "server_not_connected": return `Add the ${CCR} connector in claude.ai Settings → Connectors, then try again.`;
+    case "needs_reauth": return `Reconnect ${CCR} in claude.ai Settings → Connectors, then try again.`;
+    case "not_in_manifest": return `This page isn't allowed to use ${CCR}. Turn it on in this page's Permissions menu.`;
+    case "selection_required": return `Choose which ${CCR} connector this page should use when prompted.`;
+    case "blocked_by_policy": return `Your organization blocks ${CCR} here.`;
+    case "tool_error": return `Claude couldn't do that: ${e.message}`;
+    case "not_granted": case "capability_disabled": case "capability_removed": return "Connectors aren't available in this view. Open the page in the Claude app.";
+    default: return "Couldn't confirm that went through. Check your Claude Code sessions before trying again.";
+  }
+}
+
+function agentPrompt(t) {
+  return [
+    `Work on Task Master task ${t.id}.`,
+    ``,
+    `Task store: the Task Master artifact ${ARTIFACT_URL || "(URL not set)"}, collection "tasks", document "${t.id}". Read and update it with the ArtifactData tool.`,
+    `Follow the "Role: Task agent" rules in CLAUDE.md in this repo.`,
+    ``,
+    `Title: ${t.title}`,
+    `Priority: ${t.priority}${t.due ? `\nDue: ${t.due}` : ""}${t.type ? `\nType: ${t.type}` : ""}`,
+    `Details:`,
+    t.details || "(none)",
+  ].join("\n");
+}
+
+async function delegate(t) {
+  const m = await getMcp();
+  if (!m) { flash = { text: "Connectors aren't available in this view. Open the page in the Claude app." }; render(); return; }
+  await save(t.id, { assignee: "claude", status: "queued", history: withHistory(t, { kind: "status", text: "Delegated to Claude" }) });
+  try {
+    const res = await m.callTool(CCR, "create_session", { title: `Task: ${t.title}`.slice(0, 200), source_url: REPO_URL, prompt: agentPrompt(t), tags: ["task-master"] });
+    const p = res.payload || {};
+    const id = (p.ccr && p.ccr.id) || p.id || p.session_id;
+    if (!id) throw { code: "upstream_error" };
+    const fresh = tasks.find((x) => x.id === t.id) || t;
+    await save(t.id, { session: { id, url: "https://claude.ai/code/" + id }, history: withHistory(fresh, { kind: "status", text: "Claude session started" }) });
+    flash = { text: "Claude is on it. You'll get a notification if it needs you.", ok: true };
+  } catch (e) {
+    flash = { text: mcpMessage(e) };
+  }
+  render();
+}
+
+async function answer(t, text) {
+  text = String(text || "").trim();
+  if (!text) return;
+  const m = t.session && t.session.id ? await getMcp() : null;
+  if (t.session && t.session.id) {
+    if (!m) { flash = { text: "Connectors aren't available in this view. Open the page in the Claude app." }; render(); return; }
+    try { await m.callTool(CCR, "send_message", { session_id: t.session.id, message: `Answer for task ${t.id}: ${text}` }); }
+    catch (e) { flash = { text: mcpMessage(e) }; render(); return; }
+  }
+  flash = { text: "Answer sent. Claude will carry on.", ok: true };
+  await save(t.id, { question: null, status: "in-progress", history: withHistory(t, { kind: "answer", text }) });
+}
+
+async function revise(t, note) {
+  note = String(note || "").trim();
+  if (!note) return;
+  const m = t.session && t.session.id ? await getMcp() : null;
+  if (!m) { flash = { text: "This task has no Claude session to send changes to." }; render(); return; }
+  try { await m.callTool(CCR, "send_message", { session_id: t.session.id, message: `revise: ${note}` }); }
+  catch (e) { flash = { text: mcpMessage(e) }; render(); return; }
+  flash = { text: "Sent back to Claude.", ok: true };
+  await save(t.id, { status: "in-progress", history: withHistory(t, { kind: "note", text: "Revise: " + note }) });
+}
+
+async function stopAgent(t) {
+  const m = await getMcp();
+  if (m && t.session && t.session.id) {
+    try { await m.callTool(CCR, "interrupt_session", { session_id: t.session.id }); }
+    catch (e) { flash = { text: mcpMessage(e) }; render(); return; }
+  }
+  flash = { text: "Claude stopped. The task is back with you.", ok: true };
+  await save(t.id, { status: "todo", assignee: "me", question: null, history: withHistory(t, { kind: "status", text: "Stopped Claude" }) });
+}
+
+function nextDue(t) {
+  const base = t.due && t.due >= todayStr() ? t.due : todayStr();
+  if (t.repeat === "daily") return addDays(base, 1);
+  if (t.repeat === "weekly") return addDays(base, 7);
+  const d = new Date(base + "T00:00:00"); d.setMonth(d.getMonth() + 1); return ymd(d);
+}
+async function markDone(t) {
+  await save(t.id, { status: "done", doneAt: nowIso(), question: null, history: withHistory(t, { kind: "status", text: "Marked done" }) });
+  if (t.repeat) {
+    const ref = db.collection("tasks").doc();
+    const next = blankTask({ title: t.title, details: t.details, priority: t.priority, type: t.type, repeat: t.repeat, due: nextDue(t),
+      assignee: "me", history: [{ at: nowIso(), by: "me", kind: "status", text: "Created from a repeating task" }] });
+    try { await ref.set(next); flash = { text: `Done. Next one is due ${next.due}.`, ok: true }; } catch (e) { showBanner(storeError(e)); }
+  }
+  render();
+}
+
+// ---------- events ----------
+$("#quick").addEventListener("submit", (e) => {
+  e.preventDefault();
+  if (!db) return;
+  const input = $("#q-title");
+  addTask(input.value, $("#q-pri").value);
+  input.value = "";
+});
+$("#tabs").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-view]");
+  if (b) { view = b.dataset.view; render(); }
+});
+$("#list").addEventListener("click", (e) => {
+  const r = e.target.closest(".row");
+  if (r) { selectedId = r.dataset.id; pendingConfirm = null; flash = null; render(); }
+});
+$("#detail").addEventListener("input", (e) => {
+  const t = tasks.find((x) => x.id === selectedId);
+  if (!t) return;
+  if (e.target.id === "f-title") saveField(t.id, "title", e.target.value);
+  if (e.target.id === "f-details") saveField(t.id, "details", e.target.value);
+});
+$("#detail").addEventListener("change", (e) => {
+  const t = tasks.find((x) => x.id === selectedId);
+  if (!t) return;
+  if (e.target.id === "f-due") save(t.id, { due: e.target.value });
+  if (e.target.id === "f-repeat") save(t.id, { repeat: e.target.value });
+  if (e.target.id === "f-type") save(t.id, { type: e.target.value });
+});
+$("#detail").addEventListener("keydown", (e) => {
+  if (e.key !== "Enter") return;
+  if (e.target.id === "f-answer") { e.preventDefault(); $('[data-act="answer-text"]').click(); }
+  if (e.target.id === "f-revise") { e.preventDefault(); $('[data-act="revise"]').click(); }
+});
+$("#detail").addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-act]");
+  if (!b) return;
+  const t = tasks.find((x) => x.id === selectedId);
+  const act = b.dataset.act;
+  if (act === "close") { selectedId = null; render(); return; }
+  if (!t) return;
+  flash = null;
+  if (act === "pri") { save(t.id, { priority: b.dataset.pri }); return; }
+  if (act === "delegate" || act === "delete") { pendingConfirm = act; render(); return; }
+  if (act === "cancel") { pendingConfirm = null; render(); return; }
+  pendingConfirm = null;
+  b.disabled = true;
+  if (act === "delegate-go") await delegate(t);
+  if (act === "answer") await answer(t, b.dataset.answer);
+  if (act === "answer-text") await answer(t, $("#f-answer").value);
+  if (act === "revise") await revise(t, $("#f-revise").value);
+  if (act === "stop") await stopAgent(t);
+  if (act === "done") await markDone(t);
+  if (act === "reopen") await save(t.id, { status: t.assignee === "claude" ? "review" : "todo", doneAt: null, history: withHistory(t, { kind: "status", text: "Reopened" }) });
+  if (act === "delete-go") { try { await db.doc("tasks/" + t.id).delete(); selectedId = null; } catch (err) { showBanner(storeError(err)); } }
+  render();
+});
+
+// ---------- boot ----------
+(async () => {
+  render();
+  if (!window.claude || !claude.use) { loaded = true; showBanner("Open this page in the Claude app to see and edit your tasks."); render(); return; }
+  db = await claude.use("db");
+  if (!db) { loaded = true; showBanner("Your tasks couldn't load here. Open this page in the Claude app while signed in."); render(); return; }
+  db.collection("tasks").limit(1000).onSnapshot((snap) => {
+    tasks = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    loaded = true;
+    if (!inView("needs").length && view === "needs") view = "open";
+    if (selectedId && !tasks.some((t) => t.id === selectedId)) selectedId = null;
+    const typing = document.activeElement && ["f-title", "f-details", "f-answer", "f-revise"].includes(document.activeElement.id);
+    if (typing) { renderList(); } else { render(); }
+  }, (err) => { loaded = true; showBanner(err && err.code === "revoked" ? "" : "Live updates stopped. Reload the page to reconnect."); render(); });
+  // Open on "Needs you" when Claude is waiting.
+  setTimeout(() => { if (inView("needs").length) { view = "needs"; render(); } }, 1500);
+})();
+</script>
