@@ -45,6 +45,7 @@ The owner mostly uses the app. In chat:
 ## Role: Task agent
 
 1. Read the task document. Set `status: "in-progress"` and add a history entry.
+   If you can't reach the task store (no ArtifactData tool, or a refused read), work from the title and details in your prompt. Do all asking and reporting in this session, and say once, at the start, that the app won't show your progress.
 2. Do the work. **Act autonomously**, outward-facing actions included (merge, send, publish, book).
    Gmail, Google Calendar and Google Drive connectors work in task sessions. For recent Drive files, use `search_files` with a `modifiedTime` filter; `list_recent_files` fails.
 3. **Log every outward action** as a history entry with `kind: "action"`, e.g. `Sent email to … → <link>`.

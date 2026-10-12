@@ -54,6 +54,13 @@ header { display: flex; align-items: baseline; justify-content: space-between; g
 h1 { font-family: var(--font-display); font-weight: 700; font-size: 1.6rem; letter-spacing: -0.01em; margin: 0; }
 .summary { color: var(--muted); font-size: 0.875rem; font-variant-numeric: tabular-nums; }
 .summary b { color: var(--ask); font-weight: 600; }
+.head-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.btn.small { padding: 4px 10px; font-size: 0.85rem; }
+.box.focus { background: var(--surface); border: 1px solid var(--line); }
+.box.focus h3 { color: var(--accent); }
+.focus-list { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.focus-list button { border: 0; background: none; padding: 0; color: var(--fg); font-weight: 600; text-align: left; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+.focus-list span { color: var(--muted); font-size: 0.875rem; }
 
 .banner { padding: 10px 12px; border-radius: var(--radius); background: var(--sunk); color: var(--fg); font-size: 0.9rem; }
 .banner.warn { background: var(--ask-bg); color: var(--ask); }
@@ -164,7 +171,10 @@ details summary { cursor: pointer; color: var(--muted); font-size: 0.85rem; }
 <div class="wrap">
   <header>
     <h1>Task Master</h1>
-    <div class="summary" id="summary">Loading tasks…</div>
+    <div class="head-right">
+      <div class="summary" id="summary">Loading tasks…</div>
+      <button class="btn small" id="focus-btn" type="button" hidden>What should I focus on?</button>
+    </div>
   </header>
 
   <div class="banner warn" id="banner" hidden></div>
@@ -180,6 +190,8 @@ details summary { cursor: pointer; color: var(--muted); font-size: 0.85rem; }
     <button class="btn primary" type="submit">Add</button>
   </form>
   <div class="hint">Shortcuts in the title: <code>p0</code>–<code>p3</code> sets priority, <code>today</code> or <code>tomorrow</code> sets the due date.</div>
+
+  <div class="box focus" id="focus" hidden></div>
 
   <nav class="tabs" role="tablist" id="tabs">
     <button role="tab" data-view="needs" id="tab-needs">Needs you<span class="count" id="c-needs"></span></button>
@@ -206,7 +218,7 @@ const TYPES = { "": "Not set", code: "Code", research: "Research", writing: "Wri
 const REPEAT = { "": "Doesn't repeat", daily: "Daily", weekly: "Weekly", monthly: "Monthly" };
 
 let db = null, mcp = null, tasks = [], loaded = false;
-let view = "open", selectedId = null, pendingConfirm = null, flash = null;
+let view = "open", selectedId = null, pendingConfirm = null, flash = null, historyOpen = {};
 const chains = {};
 
 const $ = (s) => document.querySelector(s);
@@ -333,7 +345,9 @@ function renderDetail() {
   const caret = focusId && document.activeElement.selectionStart != null ? [document.activeElement.selectionStart, document.activeElement.selectionEnd] : null;
 
   const delegated = t.assignee === "claude";
-  const sess = t.session && t.session.url;
+  // Only link to real Claude session pages; the URL is written by agents.
+  const sess = t.session && typeof t.session.url === "string" && /^https:\/\/claude\.ai\//.test(t.session.url) ? t.session.url : null;
+  const showHist = historyOpen[t.id] ?? (Array.isArray(t.history) ? t.history.length : 0) <= 6;
   const q = t.status === "needs-input" && t.question;
   const cost = t.cost || {};
   const hist = (Array.isArray(t.history) ? t.history : []).slice().reverse();
@@ -374,7 +388,7 @@ function renderDetail() {
     ${delegated ? `<div class="box agent">
       <h3>Claude agent</h3>
       <dl class="kv">
-        <dt>Session</dt><dd>${sess ? `<a href="${esc(t.session.url)}" target="_blank" rel="noopener">Open session</a>` : "Not started yet"}</dd>
+        <dt>Session</dt><dd>${sess ? `<a href="${esc(sess)}" target="_blank" rel="noopener">Open session</a>` : "Not started yet"}</dd>
         <dt>Run time</dt><dd>${cost.minutes != null ? esc(cost.minutes) + " min" : "—"}</dd>
         <dt>Cost</dt><dd>${cost.usd != null ? "$" + Number(cost.usd).toFixed(2) : "—"}${cost.estimate ? " (estimate)" : ""}</dd>
       </dl>
@@ -393,11 +407,11 @@ function renderDetail() {
 
     <div class="actions">
       ${t.status !== "done" && !delegated ? `<button class="btn primary" data-act="delegate">Delegate to Claude</button>` : ""}
-      ${t.status !== "done" ? `<button class="btn" data-act="done">Mark done</button>` : `<button class="btn" data-act="reopen">Reopen</button>`}
+      ${t.status === "done" ? `<button class="btn" data-act="reopen">Reopen</button>` : t.status !== "review" ? `<button class="btn" data-act="done">Mark done</button>` : ""}
       <button class="btn danger" data-act="delete">Delete</button>
     </div>
 
-    <details${hist.length <= 6 ? " open" : ""}><summary>History (${hist.length})</summary>
+    <details id="f-history"${showHist ? " open" : ""}><summary>History (${hist.length})</summary>
       <ul class="history">${hist.map((h) => `<li><time>${esc(timeShort(h.at))}</time><div><span class="by ${h.by === "claude" ? "claude" : ""}">${h.by === "claude" ? "Claude" : "You"}</span><span class="txt">${esc(h.text)}</span></div></li>`).join("")}</ul>
     </details>`;
 
@@ -507,8 +521,11 @@ async function markDone(t) {
   await save(t.id, { status: "done", doneAt: nowIso(), question: null, history: withHistory(t, { kind: "status", text: "Marked done" }) });
   if (t.repeat) {
     const ref = db.collection("tasks").doc();
+    // A repeating task Claude handles is queued again; the daily scheduler starts its session.
+    const byClaude = t.assignee === "claude";
     const next = blankTask({ title: t.title, details: t.details, priority: t.priority, type: t.type, repeat: t.repeat, due: nextDue(t),
-      assignee: "me", history: [{ at: nowIso(), by: "me", kind: "status", text: "Created from a repeating task" }] });
+      assignee: byClaude ? "claude" : "me", status: byClaude ? "queued" : "todo",
+      history: [{ at: nowIso(), by: "me", kind: "status", text: "Created from a repeating task" + (byClaude ? ", queued for Claude" : "") }] });
     try { await ref.set(next); flash = { text: `Done. Next one is due ${next.due}.`, ok: true }; } catch (e) { showBanner(storeError(e)); }
   }
   render();
@@ -517,7 +534,7 @@ async function markDone(t) {
 // ---------- events ----------
 $("#quick").addEventListener("submit", (e) => {
   e.preventDefault();
-  if (!db) return;
+  if (!db) { showBanner("Tasks can't be saved here. Open this page in the Claude app while signed in."); return; }
   const input = $("#q-title");
   addTask(input.value, $("#q-pri").value);
   input.value = "";
@@ -542,6 +559,12 @@ $("#detail").addEventListener("change", (e) => {
   if (e.target.id === "f-due") save(t.id, { due: e.target.value });
   if (e.target.id === "f-repeat") save(t.id, { repeat: e.target.value });
   if (e.target.id === "f-type") save(t.id, { type: e.target.value });
+});
+$("#detail").addEventListener("toggle", (e) => {
+  if (e.target.id === "f-history" && selectedId) historyOpen[selectedId] = e.target.open;
+}, true);
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && selectedId && !pendingConfirm) { selectedId = null; render(); }
 });
 $("#detail").addEventListener("keydown", (e) => {
   if (e.key !== "Enter") return;
@@ -572,10 +595,49 @@ $("#detail").addEventListener("click", async (e) => {
   render();
 });
 
+// ---------- focus suggestions ----------
+let sample = null;
+async function suggestFocus() {
+  const box = $("#focus"), btn = $("#focus-btn");
+  const open = inView("open").slice(0, 60);
+  box.hidden = false;
+  if (!open.length) { box.innerHTML = `<h3>Focus</h3><p>No open tasks to choose from.</p>`; return; }
+  btn.disabled = true;
+  box.innerHTML = `<h3>Focus</h3><p>Looking at your ${open.length} open tasks…</p>`;
+  const list = open.map((t) => ({ id: t.id, title: t.title, priority: t.priority, due: t.due || null, status: t.status, with: t.assignee }));
+  const prompt = `Today is ${todayStr()}. Here are my open to-do tasks as JSON:\n${JSON.stringify(list)}\n\n` +
+    `Pick the 3 tasks I personally should focus on today (skip tasks that are with Claude unless they need my input). ` +
+    `Weigh priority (P0 most urgent), overdue and due dates, and anything waiting on me. ` +
+    `Reply with JSON only: {"picks":[{"id":"<task id>","reason":"<one short sentence>"}]}`;
+  try {
+    const out = await sample.json(prompt, { modelTier: "quick" });
+    const picks = (out && Array.isArray(out.picks) ? out.picks : []).filter((p) => tasks.some((t) => t.id === p.id)).slice(0, 3);
+    box.innerHTML = `<h3>Suggested focus for today</h3>` + (picks.length
+      ? `<ol class="focus-list">${picks.map((p) => `<li><button data-id="${esc(p.id)}">${esc(tasks.find((t) => t.id === p.id).title)}</button><br><span>${esc(p.reason)}</span></li>`).join("")}</ol>`
+      : `<p>No clear picks. Your open tasks look evenly weighted.</p>`) +
+      `<div class="actions"><button class="btn small" data-close="1">Dismiss</button></div>`;
+  } catch (e) {
+    const msg = { not_granted: "Allow this page to ask Claude, then try again.", rate_limited: "Too many requests just now. Try again in a minute.", cancelled: "Cancelled." }[e && e.code] || "Claude couldn't suggest a focus right now. Try again later.";
+    box.innerHTML = `<h3>Focus</h3><p>${esc(msg)}</p><div class="actions"><button class="btn small" data-close="1">Dismiss</button></div>`;
+  }
+  btn.disabled = false;
+}
+$("#focus-btn").addEventListener("click", suggestFocus);
+$("#focus").addEventListener("click", (e) => {
+  const pick = e.target.closest("button[data-id]");
+  if (pick) { selectedId = pick.dataset.id; view = "open"; render(); return; }
+  if (e.target.closest("button[data-close]")) $("#focus").hidden = true;
+});
+
 // ---------- boot ----------
+async function waitForClaude() {
+  for (let i = 0; i < 30 && !(window.claude && window.claude.use); i++) await new Promise((r) => setTimeout(r, 100));
+  return !!(window.claude && window.claude.use);
+}
 (async () => {
   render();
-  if (!window.claude || !claude.use) { loaded = true; showBanner("Open this page in the Claude app to see and edit your tasks."); render(); return; }
+  if (!(await waitForClaude())) { loaded = true; showBanner("Open this page in the Claude app to see and edit your tasks."); render(); return; }
+  claude.use("sample").then((s) => { sample = s; $("#focus-btn").hidden = !s; });
   db = await claude.use("db");
   if (!db) { loaded = true; showBanner("Your tasks couldn't load here. Open this page in the Claude app while signed in."); render(); return; }
   db.collection("tasks").limit(1000).onSnapshot((snap) => {
