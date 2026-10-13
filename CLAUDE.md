@@ -63,10 +63,7 @@ The owner mostly uses the app. In chat:
    - Batch questions that come up at the same moment.
    - Never guess or time out into a default.
    - The owner answers in the app or in this session. The app sends the answer here as `Answer for task <id>: …`, clears `question` and sets `in-progress`. If they answer in the session instead, clear `question` and set `in-progress` yourself.
-6. **Cost:** keep `cost` up to date at every status change:
-   - `minutes`: active run time.
-   - `usd`: the cost if the platform reports it; otherwise leave it null.
-   - `estimate: true` when the figures aren't exact.
+6. **Cost:** keep `cost` up to date at every status change with your best estimate (`minutes` of active run time, `usd` null if unknown, `estimate: true`). The dispatcher replaces it with the exact figure afterwards.
 7. **Finish:**
    - Add a `result` history entry: what changed, links, and actions taken.
    - Set `status: "review"`. **Never set `done`.**
@@ -74,8 +71,10 @@ The owner mostly uses the app. In chat:
 
 ## Role: Scheduler (routines)
 
-Two Claude routines run with their full instructions in their own prompts, because scheduled runs can't read this repo:
-- **Task Master hourly pickup** (every hour, no notification): starts queued Claude tasks in auto mode, fills gaps in repeating tasks, and writes exact costs from each finished session's `result` events (`total_cost_usd`, `duration_ms`).
-- **Task Master daily reminder** (07:52 IST, push notification): read-only summary of what's waiting on the owner, overdue, due today and due tomorrow.
+Scheduled runs in fresh sessions **can't start sessions or read session costs**: they don't get the session tools. So the pickup work runs in the owner's front-desk chat (session `session_01FpqRBGs7NGLp72BQzA1iUR`), which has them:
+- **Task Master dispatcher** (hourly, fires into that chat): starts queued Claude tasks (auto mode first, then default), fills gaps in repeating tasks, and writes exact costs. The app also fires it right away when it can't start a session itself (Claude blocks pages from calling `create_session`).
+- **Task Master daily reminder** (07:52 IST, fresh session, push notification): read-only summary of what's waiting on the owner, overdue, due today and due tomorrow.
+
+**Exact cost:** `total_cost_usd` and `duration_api_ms` in a session's `result` events are **running totals**, so use the newest result's values; never sum them.
 
 If you change the task schema or these behaviours, update the routine prompts too.
