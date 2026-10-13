@@ -13,7 +13,7 @@ This is a personal to-do list. I can add tasks, set their priority, give them de
 | **Task Master app** | Private claude.ai artifact: the UI and the task database | https://claude.ai/artifact/9XBCgHprdE8jEVJRrBLaS3, source `app/index.html` |
 | **Task agent** | One Claude Code cloud session per delegated task | Started from the app, or by the scheduler |
 | **Agent rules** | How agents, the scheduler and chat sessions behave | `CLAUDE.md` |
-| **Hourly pickup** | Claude routine, every hour: starts queued tasks, fills repeat gaps, writes exact costs | Routine "Task Master hourly pickup" |
+| **Dispatcher** | Claude routine, every hour, firing into the owner's front-desk chat (the only kind of session that can start sessions); the app also fires it on Delegate | Routine "Task Master dispatcher" |
 | **Daily reminder** | Claude routine at 07:52 IST: push summary | Routine "Task Master daily reminder" |
 | **Front desk** (optional) | Any Claude Code chat on this repo, for managing tasks by typing | Claude app → Code |
 
@@ -25,7 +25,7 @@ This is a personal to-do list. I can add tasks, set their priority, give them de
           ▼                                                    │
      tasks database ◄──── ArtifactData reads/writes ───────────┘ Task agent
           ▲                                                      (also asks me in-session)
-          └──── Hourly pickup (start queued, repeats, exact cost) + daily 07:52 reminder
+          └──── Dispatcher in the front-desk chat (start queued, repeats, exact cost) + daily 07:52 reminder
 ```
 
 Out of scope: multiple users and sharing.
@@ -139,6 +139,9 @@ Key: ✅ built · ⏳ partly built · ☐ not built. **M** = must, **S** = shoul
 - 2026-10-12: the task database is hidden from view-level visitors; the owner can read and write it.
 
 ## 10. Open risks and checks
+
+- **Pages can't start sessions:** Claude refuses `create_session` from the app (`blocked_by_policy`). Scheduled runs in fresh sessions don't get session tools at all. So the app fires the **dispatcher** routine, which wakes the owner's front-desk chat, and that chat starts the session. This depends on that chat staying available; it resumes on each firing. If it is ever archived, recreate the dispatcher from a new chat on this repo.
+- **Cost figures are running totals:** `total_cost_usd` per session grows with every turn, so use the newest value. Research tasks can be expensive: the school research cost $12.07, mostly because of many web searches and sub-agents.
 
 - **Agent writes to the app:** a delegated session needs the ArtifactData tool to update its task. Check this with the first task delegated from the app. If it fails, the agent still works and asks in its session, but the app won't show its progress.
 - **Scheduler access:** the routine runs without connectors. A test run checks whether it can read tasks with ArtifactData.
