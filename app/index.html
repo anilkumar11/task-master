@@ -696,7 +696,7 @@ async function delegate(t) {
 }
 // Also used by the retry button when an earlier start didn't go through.
 // Claude may block pages from starting sessions directly. Then the page asks the hourly
-// pickup routine to run right now; it starts every queued task within a minute or two.
+// pickup routine to run right now. The dispatcher also runs every 15 minutes, so a queued task starts within 15 minutes even if this nudge is lost.
 async function startSession(t) {
   const m = await getMcp();
   if (!m) { toast("Connectors aren't available in this view. Open the page in the Claude app.", { error: true }); return; }
@@ -727,11 +727,11 @@ async function startSession(t) {
       await m.callTool(CCR, "fire_trigger", { trigger_id: PICKUP_TRIGGER, text: `Owner just delegated task ${t.id} from the app. Start it now.` });
       const fresh = byId(t.id) || t;
       await save(t.id, { history: withHistory(fresh, { kind: "status", text: "Asked the scheduler to start Claude now" }) });
-      toast("Claude will start this task in a minute or two.");
+      toast("Queued. Claude starts it within 15 minutes, usually sooner.");
       return;
     } catch (e) { lastErr = e; }
   }
-  toast(mcpMessage(lastErr) + " The task stays queued; the hourly scheduler will start it.", { error: true });
+  toast(mcpMessage(lastErr) + " The task stays queued; the dispatcher starts it within 15 minutes.", { error: true });
 }
 async function answer(t, text) {
   text = String(text || "").trim();

@@ -72,7 +72,7 @@ The owner mostly uses the app. In chat:
 ## Role: Scheduler (routines)
 
 Scheduled runs in fresh sessions **can't start sessions or read session costs**: they don't get the session tools. So the pickup work runs in the owner's front-desk chat (session `session_01FpqRBGs7NGLp72BQzA1iUR`), which has them:
-- **Task Master dispatcher** (hourly, fires into that chat): starts queued Claude tasks (auto mode first, then default), fills gaps in repeating tasks, and writes exact costs. The app also fires it right away when it can't start a session itself (Claude blocks pages from calling `create_session`).
+- **Task Master dispatcher** (every 15 minutes: four hourly schedules at :11, :26, :41 and :56, all firing into that chat): starts queued Claude tasks (auto mode first, then default), fills gaps in repeating tasks, and writes exact costs. The app also fires it right away when it can't start a session itself (Claude blocks pages from calling `create_session`).
 - **Task Master daily reminder** (07:52 IST, fresh session, push notification): read-only summary of what's waiting on the owner, overdue, due today and due tomorrow.
 
 **Exact cost:** `total_cost_usd` and `duration_api_ms` in a session's `result` events are **running totals**, so use the newest result's values; never sum them.
