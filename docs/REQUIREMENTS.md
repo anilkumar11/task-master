@@ -69,7 +69,7 @@ Key: ✅ built · ⏳ partly built · ☐ not built. **M** = must, **S** = shoul
 - ✅ **FR-9 (M)** The agent acts autonomously, including outward actions, and logs each one in the task history.
 - ✅ **FR-10 (M)** The agent finishes in `review`, never `done`. I accept the result, or send it back with a note that goes to the session.
 - ✅ **FR-11 (S)** "Stop Claude" interrupts the session and hands the task back to me.
-- ✅ **FR-12 (M)** Tasks queued without a session, such as repeats or failed starts, are started by the hourly pickup within an hour. Sessions run in auto mode.
+- ✅ **FR-12 (M)** Tasks queued without a session, such as repeats or failed starts, are started by the dispatcher, which runs every 15 minutes (four hourly schedules at :11, :26, :41, :56). Sessions run in auto mode.
 
 ### 4.4 Critical questions
 - ✅ **FR-13 (M)** The agent asks only when:
@@ -141,6 +141,7 @@ Key: ✅ built · ⏳ partly built · ☐ not built. **M** = must, **S** = shoul
 ## 10. Open risks and checks
 
 - **Pages can't start sessions:** Claude refuses `create_session` from the app (`blocked_by_policy`). Scheduled runs in fresh sessions don't get session tools at all. So the app fires the **dispatcher** routine, which wakes the owner's front-desk chat, and that chat starts the session. This depends on that chat staying available; it resumes on each firing. If it is ever archived, recreate the dispatcher from a new chat on this repo.
+- **On-demand nudges can be lost:** on 2026-10-15 the app's three "start now" calls were recorded but never reached the front-desk chat, so a task sat queued. Scheduled runs did arrive. The dispatcher now runs every 15 minutes, so a lost nudge delays a task by 15 minutes at most.
 - **Cost figures are running totals:** `total_cost_usd` per session grows with every turn, so use the newest value. Research tasks can be expensive: the school research cost $12.07, mostly because of many web searches and sub-agents.
 
 - **Agent writes to the app:** a delegated session needs the ArtifactData tool to update its task. Check this with the first task delegated from the app. If it fails, the agent still works and asks in its session, but the app won't show its progress.
